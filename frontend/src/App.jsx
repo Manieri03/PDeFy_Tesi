@@ -2,6 +2,7 @@ import {useState, useRef,useEffect} from "react";
 import "./App.css";
 import ReactMarkdown from "react-markdown";
 import { File, Send } from "lucide-react";
+import logo from "./assets/PDefy.png";
 
 function App() {
     const [prompt, setPrompt] = useState("");
@@ -78,7 +79,10 @@ function App() {
 
     return (
         <div className="container_div">
-            <h1>Estrazione PDF</h1>
+            <div className="header_div">
+            <img className="logo" src={logo}/>
+            <h1>PDefy - Estrazione PDF</h1>
+            </div>
             <form className="form_input" onSubmit={handleSubmit}>
                 <textarea
                     value={prompt}
