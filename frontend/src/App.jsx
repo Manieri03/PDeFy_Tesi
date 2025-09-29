@@ -1,6 +1,7 @@
 import {useState, useRef,useEffect} from "react";
 import "./App.css";
 import ReactMarkdown from "react-markdown";
+import { File, Send } from "lucide-react";
 
 function App() {
     const [prompt, setPrompt] = useState("");
@@ -87,6 +88,7 @@ function App() {
                 />
 
                 <label className="lbl_pdf">
+                    <File size={18}></File>
                     {file ? file.name : "Seleziona PDF"}
                     <input
                         type="file"
@@ -95,7 +97,7 @@ function App() {
                     />
                 </label>
                 <button className="btn_submit" type="submit" disabled={loading}>
-                    {loading ? "Caricamento..." : "Invia"}
+                    <Send size={18}></Send>{loading ? "Caricamento..." : "Invia"}
                 </button>
             </form>
 

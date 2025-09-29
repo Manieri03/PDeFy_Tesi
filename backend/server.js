@@ -69,10 +69,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
             `;
 
         const requestBody = {
-            // 1. Istruzione vincolante per il sistema
             systemInstruction: "Sei un web developer esperto. La tua UNICA risposta deve essere una pagina HTML completa e ben strutturata (inizia con <!DOCTYPE html> e finisce con </html>). NON includere testo esplicativo, commenti o blocchi di codice markdown (es. ```html).",
-
-            // 2. Il contenuto per l'utente va nei 'contents'
             contents: [
                 {
                     role: "user",
