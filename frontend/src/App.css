@@ -5,22 +5,84 @@
   text-align: center;
   justify-content: center;
   align-items: center;
+  h1{
+    color: #176087;
+  }
 }
 
 .form_input{
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap:50px;
   justify-content: center;
   align-items: center;
 }
 
-button {
+.btn_submit {
   padding: 0.5rem 1rem;
   font-size: 1rem;
   cursor: pointer;
+  color: white;
+  background-color: #2ba9ed;
+  transition: background-color 0.3s;
+}
+
+.btn_submit:hover {
+  background-color: #1f7fb3;
+  border: 1px solid #1f7fb3;
 }
 
 .error {
   color: red;
 }
+
+.error_div{
+  color: red;
+  margin-top: 1rem;
+}
+
+.lbl_pdf{
+  display: block;
+  margin-bottom: 1rem;
+
+  input{
+    margin-top: 1rem;
+    margin-left: 2rem;
+  }
+}
+
+textarea{
+  width: 40vw;
+  padding: 0.8rem;
+  resize: none;
+  border: #4eccc4 2px solid;
+  border-radius: 10px;
+}
+textarea:focus{
+  outline: none;
+}
+
+
+.lbl_pdf input[type="file"] {
+  display: none;
+}
+
+.lbl_pdf {
+  display: inline-block;
+  padding: 10px 20px;
+  cursor: pointer;
+  background-color: #4f46e5;
+  color: white;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.lbl_pdf:hover {
+  background-color: #3730a3;
+}
+.lbl_pdf::after {
+  content: attr(data-file);
+}
+
+
