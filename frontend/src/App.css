@@ -7,7 +7,17 @@
   align-items: center;
   h1{
     color: #176087;
+    font-size: 3.2em;
+    line-height: 1.1;
   }
+}
+
+
+.container_div{
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .form_input{
@@ -19,12 +29,16 @@
 }
 
 .btn_submit {
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 1em;
   cursor: pointer;
   color: white;
   background-color: #2ba9ed;
   transition: background-color 0.3s;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 500;
+  font-family: inherit;
 }
 
 .btn_submit:hover {
@@ -84,5 +98,7 @@ textarea:focus{
 .lbl_pdf::after {
   content: attr(data-file);
 }
+
+
 
 

@@ -59,23 +59,38 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
 
         // Invio a Gemini
         console.log("Invio richiesta a Gemini");
+
+        const bodyTextForGemini =
+            `
+            Non risolvere esercizi, mantieni tutto come contenuto.
+            PROMPT UTENTE: ${req.body.prompt}
+            CONTENUTO DEL PDF:
+            ${finalText}
+            `;
+
+        const requestBody = {
+            // 1. Istruzione vincolante per il sistema
+            systemInstruction: "Sei un web developer esperto. La tua UNICA risposta deve essere una pagina HTML completa e ben strutturata (inizia con <!DOCTYPE html> e finisce con </html>). NON includere testo esplicativo, commenti o blocchi di codice markdown (es. ```html).",
+
+            // 2. Il contenuto per l'utente va nei 'contents'
+            contents: [
+                {
+                    role: "user",
+                    parts: [{ text: bodyTextForGemini }],
+                },
+            ],
+            config: {
+                temperature: 0.8,
+                candidateCount: 1,
+            }
+        };
+
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: `Non risolvere gli esercizi, fai solo quello che ti viene chiesto\n\n
-                            ${prompt}\n\n
-                            Contenuto del PDF:\n${finalText}`
-                        }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                    }
-                }),
+                body: JSON.stringify(requestBody),
             }
         );
 

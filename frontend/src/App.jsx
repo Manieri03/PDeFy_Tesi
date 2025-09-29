@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useState, useRef,useEffect} from "react";
 import "./App.css";
 import ReactMarkdown from "react-markdown";
 
@@ -8,6 +8,7 @@ function App() {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const responseRef = useRef(null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -50,6 +51,7 @@ function App() {
             }
 
             setResponse(text);
+
         } catch (err) {
             console.error("Errore:", err);
             setError(err.message);
@@ -58,8 +60,23 @@ function App() {
         }
     };
 
+    useEffect(() => {
+        if (responseRef.current) {
+            const element = responseRef.current;
+            const elementTop = element.getBoundingClientRect().top + window.scrollY;
+            const scrollTo = elementTop - window.innerHeight / 2 + element.offsetHeight / 2;
+
+            window.scrollTo({
+                top: scrollTo,
+                behavior: "smooth",
+            });
+        }
+    }, [response]);
+
+
+
     return (
-        <div>
+        <div className="container_div">
             <h1>Estrazione PDF</h1>
             <form className="form_input" onSubmit={handleSubmit}>
                 <textarea
@@ -90,10 +107,10 @@ function App() {
             )}
 
             {response && (
-                <>
+                <div ref={responseRef} className="response_div">
                     <h2>Risposta:</h2>
                     <ReactMarkdown>{response}</ReactMarkdown>
-                </>
+                </div>
             )}
         </div>
     );
