@@ -1,0 +1,26 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3rem;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.form_input{
+  display: flex;
+  flex-direction: row;
+  gap:50px;
+  justify-content: center;
+  align-items: center;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.error {
+  color: red;
+}
