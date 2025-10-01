@@ -7,19 +7,22 @@ import { PDFExtract } from "pdf.js-extract";
 
 dotenv.config();
 const app = express();
+
+//directory momentanea che contiene i file prima dell'elebaorazione, verrà poi pulita
 const upload = multer({ dest: "uploads/" });
 const pdfExtract = new PDFExtract();
 
+//API Key di Gemini
 const API_KEY = process.env.GEMINI_API_KEY;
-
 if (!API_KEY) {
     console.error("GEMINI_API_KEY non trovata nel file .env");
     process.exit(1);
 }
 
-//middleware
+//middleware per parsing del corpo della richiesta
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 
 app.post("/api/generate", upload.single("file"), async (req, res) => {
     let filePath = null;
@@ -43,7 +46,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
 
         filePath = req.file.path;
 
-        // Estrazione testo dal PDF
+        // Estrazione testo dal PDF tramite PDFEstract
         console.log("Estrazione testo dal PDF...");
         const data = await pdfExtract.extract(filePath);
         const extractedText = data.pages
@@ -58,6 +61,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
             ? extractedText.substring(0, maxChars) + "\n\n...Testo troncato..."
             : extractedText;
 
+        //Costruzionde della request combinando prompt e pdf
         const requestBody = {
             contents: [
                 {
@@ -69,8 +73,6 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
                 },
             ]
         };
-
-
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,

@@ -1,7 +1,7 @@
 import {useState, useRef,useEffect} from "react";
 import "./App.css";
 import ReactMarkdown from "react-markdown";
-import { File, Send, FileText,Download  } from "lucide-react";
+import { File, Send, FileText,Download,FileCode, Loader } from "lucide-react";
 import logo from "./assets/PDefyIcon.png";
 
 function App() {
@@ -82,11 +82,29 @@ function App() {
         document.body.removeChild(element);
     };
 
+    const handleHtmlPreset = () => {
+        setPrompt(`Converti il contenuto del PDF fornito in un HTML completo, ben strutturato e semantico. 
+        - Usa tag corretti per titoli (<h1>-<h6>), paragrafi (<p>), liste (<ul>/<ol>), tabelle (<table>), immagini (<img>).
+        - Mantieni la gerarchia dei titoli e dei paragrafi come nel PDF.
+        - Inserisci classi CSS significative per ogni sezione o elemento
+        - Includi un <header>, <main> e <footer> se appropriato.
+        - Produci HTML leggibile, indentato e pronto per essere scalato e stilizzato.
+        - Non includere contenuti inutili o duplicati.
+        - Rispondi solo con il codice HTML, senSSza spiegazioni o testo extra.
+        - Se sono presenti esercizi numerali nell'ordine corretto.
+        - inserisci anche una sezione <style></style> per la definizione dello stile, gradevole e coerente.
+        - non risolvere alcun esercizio, limitati a riportarli nel modo migliore
+        - non inserire (\`\`\`html) e (\`\`\`) all'inizio e alla fine`);
+    };
+
     return (
         <div className="container_div">
             <div className="header_div">
-            <img className="logo" src={logo}/>
-            <h1>Estrazione PDF</h1>
+                <img className="logo" src={logo}/>
+                <h1>Estrazione PDF</h1>
+            </div>
+            <div className="predefined_prmpt_div">
+                <button className="btn_submit" onClick={handleHtmlPreset}>HTML <FileCode size={20}></FileCode></button>
             </div>
             <form className="form_input" onSubmit={handleSubmit}>
                 <textarea
@@ -97,7 +115,7 @@ function App() {
                 />
 
                 <label className="lbl_pdf">
-                    <File size={18}></File>
+                    <File size={20}></File>
                     {file ? file.name : "Seleziona PDF"}
                     <input
                         type="file"
@@ -106,7 +124,7 @@ function App() {
                     />
                 </label>
                 <button className="btn_submit" type="submit" disabled={loading}>
-                    <Send size={28}></Send>{loading ? "Caricamento..." : "Invia"}
+                    {loading ? <Loader className="spin" size={28}></Loader> : <Send size={28}></Send>}
                 </button>
             </form>
 
@@ -116,7 +134,6 @@ function App() {
                     <p>{error}</p>
                 </div>
             )}
-            <p></p>
 
             {response && (
                 <div ref={responseRef} className="response_div">

@@ -18,13 +18,13 @@
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  gap: 3.5rem;
+  gap: 2rem;
 }
 
 .form_input{
   display: flex;
   flex-direction: column;
-  gap:50px;
+  gap:1rem;
   justify-content: center;
   align-items: center;
 }
@@ -34,12 +34,13 @@
   align-items: center;
   gap: 7px;
   padding: 0.6rem 1.2rem;
-  font-size: 1.4em;
+  font-size: 1.1em;
   cursor: pointer;
   color: white;
   background-color: #2ba9ed;
   transition: background-color 0.3s;
   border-radius: 8px;
+  corner-shape:squircle;
   border: 1px solid transparent;
   font-weight: 500;
   font-family: inherit;
@@ -77,7 +78,8 @@ textarea{
   padding: 0.8rem;
   resize: none;
   border: #176087 2px solid;
-  border-radius: 10px;
+  border-radius: 25px;
+  corner-shape:squircle;
   box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
@@ -105,6 +107,7 @@ textarea:focus{
   background-color: #2ba9ed;
   color: white;
   border-radius: 8px;
+  corner-shape:squircle;
   font-weight: bold;
   transition: background-color 0.3s;
 }
@@ -126,7 +129,8 @@ textarea:focus{
   justify-content: center;
   align-items: center;
   text-align: start;
-  border-radius: 10px;
+  border-radius: 30px;
+  corner-shape:squircle;
   background-color: #176087;
   padding: 1rem 2rem;
   color: white;
@@ -173,4 +177,13 @@ textarea:focus{
 .response_textarea::-webkit-scrollbar-thumb:hover {
   background-color: #1f7fb3;
   cursor: pointer;
+}
+
+.spin {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
