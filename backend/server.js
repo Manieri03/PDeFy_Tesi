@@ -32,6 +32,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         console.log("File ricevuto:", req.file);
         console.log("Body completo:", req.body);
 
+
         if (!prompt) {
             return res.status(400).json({ error: "Prompt mancante" });
         }
@@ -54,33 +55,22 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         // Limita il testo se troppo lungo
         const maxChars = 30000;
         const finalText = extractedText.length > maxChars
-            ? extractedText.substring(0, maxChars) + "\n\n[Testo troncato...]"
+            ? extractedText.substring(0, maxChars) + "\n\n...Testo troncato..."
             : extractedText;
 
-        // Invio a Gemini
-        console.log("Invio richiesta a Gemini");
-
-        const bodyTextForGemini =
-            `
-            Non risolvere esercizi, mantieni tutto come contenuto.
-            PROMPT UTENTE: ${req.body.prompt}
-            CONTENUTO DEL PDF:
-            ${finalText}
-            `;
-
         const requestBody = {
-            systemInstruction: "Sei un web developer esperto. La tua UNICA risposta deve essere una pagina HTML completa e ben strutturata (inizia con <!DOCTYPE html> e finisce con </html>). NON includere testo esplicativo, commenti o blocchi di codice markdown (es. ```html).",
             contents: [
                 {
                     role: "user",
-                    parts: [{ text: bodyTextForGemini }],
+                    parts: [
+                        { text: `PROMPT UTENTE: ${prompt}` },
+                        { text: `CONTENUTO DEL PDF:\n${finalText}` },
+                    ],
                 },
-            ],
-            config: {
-                temperature: 0.8,
-                candidateCount: 1,
-            }
+            ]
         };
+
+
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,

@@ -1,8 +1,8 @@
 import {useState, useRef,useEffect} from "react";
 import "./App.css";
 import ReactMarkdown from "react-markdown";
-import { File, Send } from "lucide-react";
-import logo from "./assets/PDefy.png";
+import { File, Send, FileText,Download  } from "lucide-react";
+import logo from "./assets/PDefyIcon.png";
 
 function App() {
     const [prompt, setPrompt] = useState("");
@@ -16,7 +16,7 @@ function App() {
         e.preventDefault();
         setError("");
         setResponse("");
-
+        
         if (!prompt) {
             alert("Inserisci un prompt");
             return;
@@ -54,6 +54,7 @@ function App() {
 
             setResponse(text);
 
+
         } catch (err) {
             console.error("Errore:", err);
             setError(err.message);
@@ -63,25 +64,29 @@ function App() {
     };
 
     useEffect(() => {
-        if (responseRef.current) {
-            const element = responseRef.current;
-            const elementTop = element.getBoundingClientRect().top + window.scrollY;
-            const scrollTo = elementTop - window.innerHeight / 2 + element.offsetHeight / 2;
-
-            window.scrollTo({
-                top: scrollTo,
+        if (response && responseRef.current) {
+            // Scroll verso la risposta
+            responseRef.current.scrollIntoView({
                 behavior: "smooth",
             });
         }
     }, [response]);
 
-
+    const downloadHTML = () => {
+        const element = document.createElement("a");
+        const file = new Blob([response], { type: "text/html" });
+        element.href = URL.createObjectURL(file);
+        element.download = "output.html";
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    };
 
     return (
         <div className="container_div">
             <div className="header_div">
             <img className="logo" src={logo}/>
-            <h1>PDefy - Estrazione PDF</h1>
+            <h1>Estrazione PDF</h1>
             </div>
             <form className="form_input" onSubmit={handleSubmit}>
                 <textarea
@@ -101,7 +106,7 @@ function App() {
                     />
                 </label>
                 <button className="btn_submit" type="submit" disabled={loading}>
-                    <Send size={18}></Send>{loading ? "Caricamento..." : "Invia"}
+                    <Send size={28}></Send>{loading ? "Caricamento..." : "Invia"}
                 </button>
             </form>
 
@@ -111,11 +116,20 @@ function App() {
                     <p>{error}</p>
                 </div>
             )}
+            <p></p>
 
             {response && (
                 <div ref={responseRef} className="response_div">
-                    <h2>Risposta:</h2>
-                    <ReactMarkdown>{response}</ReactMarkdown>
+                    <h2><FileText size={20} className="icon_response"/>Output:</h2>
+                    <textarea
+                        className="response_textarea"
+                        value={response}
+                        onChange={(e) => setResponse(e.target.value)}
+                        rows={30}
+                    />
+                    <button className="btn_submit" id="btn_download" onClick={downloadHTML}>
+                        <Download size={30} />
+                    </button>
                 </div>
             )}
         </div>
