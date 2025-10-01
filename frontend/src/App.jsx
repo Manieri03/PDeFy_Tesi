@@ -90,7 +90,7 @@ function App() {
         - Includi un <header>, <main> e <footer> se appropriato.
         - Produci HTML leggibile, indentato e pronto per essere scalato e stilizzato.
         - Non includere contenuti inutili o duplicati.
-        - Rispondi solo con il codice HTML, senSSza spiegazioni o testo extra.
+        - Rispondi solo con il codice HTML, senza spiegazioni o testo extra.
         - Se sono presenti esercizi numerali nell'ordine corretto.
         - inserisci anche una sezione <style></style> per la definizione dello stile, gradevole e coerente.
         - non risolvere alcun esercizio, limitati a riportarli nel modo migliore
