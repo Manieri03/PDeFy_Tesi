@@ -1,17 +1,15 @@
 import express from "express";
-import fetch from "node-fetch";
 import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
-import { PDFExtract } from "pdf.js-extract";
 import { performance } from "perf_hooks";
+import { GoogleGenAI } from "@google/genai";
+
 
 dotenv.config();
 const app = express();
-
-//directory momentanea che contiene i file prima dell'elebaorazione, verrà poi pulita
+// Multer per gestire il file temporaneo
 const upload = multer({ dest: "uploads/" });
-const pdfExtract = new PDFExtract();
 
 function makeTimer(label = "TIMER") {
     const start = performance.now();
@@ -21,122 +19,102 @@ function makeTimer(label = "TIMER") {
         console.log(`[${label}] ${checkpoint} +${elapsed}ms`);
     };
 }
-
-//API Key di Gemini
+//lettura automatica della key dal .env
 const API_KEY = process.env.GEMINI_API_KEY;
 if (!API_KEY) {
     console.error("GEMINI_API_KEY non trovata nel file .env");
     process.exit(1);
 }
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 //middleware per parsing del corpo della richiesta
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
 app.post("/api/generate", upload.single("file"), async (req, res) => {
     const logTime = makeTimer("Cronometro");
     let filePath = null;
+    let fileResource = null; // Riferimento al file caricato su Gemini
 
     try {
         logTime("Inizio richiesta");
 
-        // Multer mette i campi text in req.body
         const prompt = req.body.prompt;
 
-        //console.log("Prompt ricevuto:", prompt);
-        //console.log("File ricevuto:", req.file);
-        //console.log("Body completo:", req.body);
-
-
-        if (!prompt) {
-            return res.status(400).json({ error: "Prompt mancante" });
+        if (!prompt || !req.file ) {
+            return res.status(400).json({ error: "Prompt o pdf mancante" });
         }
 
-        if (!req.file) {
-            return res.status(400).json({ error: "Nessun file PDF caricato" });
-        }
-
-        filePath = req.file.path;
         logTime("File ricevuto");
 
-        // Estrazione testo dal PDF tramite PDFEstract
-        const data = await pdfExtract.extract(filePath);
-        logTime("PDF estratto");
+        //console.log(req.file.mimetype);
+        console.log(req.file)
 
-        const extractedText = data.pages
-            .map(page => page.content.map(item => item.str).join(" "))
-            .join("\n");
-        logTime("Testo concatenato");
-        console.log(`Estratte ${data.pages.length} pagine (${extractedText.length} caratteri)`);
+        // L'SDK gestisce la lettura del file binario e l'upload all'endpoint files/
+        fileResource = await ai.files.upload({
+            file: req.file.path,
+            mimeType: req.file.mimetype,
+            displayName: req.file.originalname,
+        });
 
-        // Limita il testo se troppo lungo
-        const maxChars = 30000;
-        const finalText = extractedText.length > maxChars
-            ? extractedText.substring(0, maxChars) + "\n\n...Testo troncato..."
-            : extractedText;
+        logTime(`File caricato su Gemini: ${fileResource.name}`);
 
-        const outputPath = "outputs/finalText.txt";
-
-        //crea la cartella se non esiste
-        if (!fs.existsSync("outputs")) {
-            fs.mkdirSync("outputs");
-        }
-        fs.writeFileSync(outputPath, finalText, "utf-8");
-        logTime("FinalText salvato");
-
-        //Costruzionde della request combinando prompt e pdf
-        const requestBody = {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
             contents: [
                 {
                     role: "user",
                     parts: [
                         { text: `PROMPT UTENTE: ${prompt}` },
-                        { text: `CONTENUTO DEL PDF:\n${finalText}` },
+                        {
+                            fileData: {
+                                mimeType: req.file.mimetype,
+                                fileUri: fileResource.name,
+                            },
+                        },
                     ],
                 },
-            ]
-        };
-        logTime("Request body costruito");
+            ],
+            //...
+        });
 
-
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestBody),
-            }
-        );
-
-        logTime("Chiamata API completata");
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Errore Gemini:", errorText);
-            throw new Error(`Errore API Gemini: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
         logTime("Risposta Gemini ricevuta");
+        const resultText = response.response.text; // Estrai il testo della risposta
 
-        // Pulizia file
+        // Pulizia file locale
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
+            logTime("File locale eliminato");
+        }
+        // Pulizia file da Gemini
+        if (fileResource) {
+            await ai.files.delete({ name: fileResource.name });
+            logTime("File rimosso da Gemini");
         }
 
-        res.json(result);
+        // Risposta al client
+        res.json({ text: resultText, fullResponse: response });
         logTime("Risposta inviata al client");
 
     } catch (error) {
         console.error("Errore nel backend:", error);
 
-        // Pulizia file in caso di errore
+        // Pulizia file locale in caso di errore
         if (filePath && fs.existsSync(filePath)) {
             try {
                 fs.unlinkSync(filePath);
             } catch (e) {
-                console.error("Errore nella pulizia del file:", e);
+                console.error("Errore nella pulizia del file locale:", e);
+            }
+        }
+
+        // Pulizia file su Gemini in caso di errore
+        if (fileResource) {
+            try {
+                await ai.files.delete({ name: fileResource.name });
+                console.log("File rimosso da Gemini dopo l'errore.");
+            } catch (e) {
+                console.error("Errore nella pulizia del file da Gemini:", e);
             }
         }
 
