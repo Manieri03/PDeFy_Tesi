@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
 import { PDFExtract } from "pdf.js-extract";
+import { performance } from "perf_hooks";
 
 dotenv.config();
 const app = express();
@@ -11,6 +12,15 @@ const app = express();
 //directory momentanea che contiene i file prima dell'elebaorazione, verrà poi pulita
 const upload = multer({ dest: "uploads/" });
 const pdfExtract = new PDFExtract();
+
+function makeTimer(label = "TIMER") {
+    const start = performance.now();
+    return (checkpoint) => {
+        const now = performance.now();
+        const elapsed = (now - start).toFixed(2);
+        console.log(`[${label}] ${checkpoint} +${elapsed}ms`);
+    };
+}
 
 //API Key di Gemini
 const API_KEY = process.env.GEMINI_API_KEY;
@@ -25,15 +35,18 @@ app.use(express.urlencoded({ extended: true }));
 
 
 app.post("/api/generate", upload.single("file"), async (req, res) => {
+    const logTime = makeTimer("Cronometro");
     let filePath = null;
 
     try {
+        logTime("Inizio richiesta");
+
         // Multer mette i campi text in req.body
         const prompt = req.body.prompt;
 
-        console.log("Prompt ricevuto:", prompt);
-        console.log("File ricevuto:", req.file);
-        console.log("Body completo:", req.body);
+        //console.log("Prompt ricevuto:", prompt);
+        //console.log("File ricevuto:", req.file);
+        //console.log("Body completo:", req.body);
 
 
         if (!prompt) {
@@ -45,14 +58,16 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         }
 
         filePath = req.file.path;
+        logTime("File ricevuto");
 
         // Estrazione testo dal PDF tramite PDFEstract
-        console.log("Estrazione testo dal PDF...");
         const data = await pdfExtract.extract(filePath);
+        logTime("PDF estratto");
+
         const extractedText = data.pages
             .map(page => page.content.map(item => item.str).join(" "))
             .join("\n");
-
+        logTime("Testo concatenato");
         console.log(`Estratte ${data.pages.length} pagine (${extractedText.length} caratteri)`);
 
         // Limita il testo se troppo lungo
@@ -60,6 +75,15 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         const finalText = extractedText.length > maxChars
             ? extractedText.substring(0, maxChars) + "\n\n...Testo troncato..."
             : extractedText;
+
+        const outputPath = "outputs/finalText.txt";
+
+        //crea la cartella se non esiste
+        if (!fs.existsSync("outputs")) {
+            fs.mkdirSync("outputs");
+        }
+        fs.writeFileSync(outputPath, finalText, "utf-8");
+        logTime("FinalText salvato");
 
         //Costruzionde della request combinando prompt e pdf
         const requestBody = {
@@ -73,6 +97,8 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
                 },
             ]
         };
+        logTime("Request body costruito");
+
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
@@ -83,6 +109,8 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
             }
         );
 
+        logTime("Chiamata API completata");
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error("Errore Gemini:", errorText);
@@ -90,7 +118,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         }
 
         const result = await response.json();
-        console.log("Risposta ricevuta da Gemini");
+        logTime("Risposta Gemini ricevuta");
 
         // Pulizia file
         if (fs.existsSync(filePath)) {
@@ -98,6 +126,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         }
 
         res.json(result);
+        logTime("Risposta inviata al client");
 
     } catch (error) {
         console.error("Errore nel backend:", error);
