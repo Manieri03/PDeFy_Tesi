@@ -1,0 +1,24 @@
+.editor_tiny{
+    width: 100% !important;
+}
+
+.tox-tinymce {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+
+.tox .tox-toolbar__group button[aria-label="Source code"] {
+    background-color: #2ba9ed !important;
+}
+.tox .tox-toolbar__group button[aria-label="Source code"]:hover {
+    background-color: #1f7fb3 !important;
+}
+
+.tox .tox-tbtn {
+    border-radius: 4px !important;
+}
+.tox .tox-tbtn:hover {
+    background-color: #e8e8e8 !important;
+    cursor: pointer;
+}

@@ -27,8 +27,17 @@ export default function WysiwygEditor({ initialHtml, onChange }) {
                 menubar: false,
                 statusbar: false,
                 toolbar:
-                    "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | removeformat code",
+                    "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | code",
                 plugins: ["lists", "link", "autolink", "code", "table", "visualblocks", "wordcount"],
+
+                setup: (editor) => {
+                    if (editor.editorManager.i18n) {
+                        editor.editorManager.i18n.add('it', {
+                            'Cancel': 'Annulla',
+                            'Save': 'Salva'
+                        });
+                    }
+                },
                 content_style: `
                     body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; padding: 1rem; }
                     h1,h2,h3,h4,h5,h6 { margin-top: 1em; font-weight: 600; }
