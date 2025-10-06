@@ -3,6 +3,7 @@ import "./App.css";
 import ReactMarkdown from "react-markdown";
 import { File, Send, FileText,Download,FileCode, Loader } from "lucide-react";
 import logo from "./assets/PDefyIcon.png";
+import WysiwygEditor from "./WysiwygEditor";
 
 function App() {
     const [prompt, setPrompt] = useState("");
@@ -11,6 +12,8 @@ function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const responseRef = useRef(null);
+    const [editedHtml, setEditedHtml] = useState("");
+    const [extractedStyle, setExtractedStyle] = useState("");
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -52,8 +55,13 @@ function App() {
                 throw new Error("Nessuna risposta dal modello");
             }
 
-            setResponse(text);
+            const styleMatch = text.match(/<style[\s\S]*?<\/style>/);
+            const styleContent = styleMatch ? styleMatch[0] : "";
+            const htmlContent = text.replace(/<style[\s\S]*?<\/style>/, "");
 
+            setExtractedStyle(styleContent);
+            setResponse(htmlContent);
+            setEditedHtml(htmlContent);
 
         } catch (err) {
             console.error("Errore:", err);
@@ -73,8 +81,9 @@ function App() {
     }, [response]);
 
     const downloadHTML = () => {
+        const content = `${extractedStyle}\n${editedHtml || response}`;
         const element = document.createElement("a");
-        const file = new Blob([response], { type: "text/html" });
+        const file = new Blob([content], { type: "text/html" });
         element.href = URL.createObjectURL(file);
         element.download = "output.html";
         document.body.appendChild(element);
@@ -137,14 +146,17 @@ function App() {
 
             {response && (
                 <div ref={responseRef} className="response_div">
-                    <h2><FileText size={20} className="icon_response"/>Output:</h2>
-                    <textarea
-                        className="response_textarea"
-                        value={response}
-                        onChange={(e) => setResponse(e.target.value)}
-                        rows={30}
-                    />
-                    <button className="btn_submit" id="btn_download" onClick={downloadHTML}>
+                    <h2>
+                        <FileText size={20} className="icon_response" /> Output:
+                    </h2>
+
+                    <WysiwygEditor classname="editor_tiny" initialHtml={response} onChange={setEditedHtml} editedHtml={editedHtml} />
+
+                    <button
+                        className="btn_submit"
+                        id="btn_download"
+                        onClick={downloadHTML}
+                    >
                         <Download size={30} />
                     </button>
                 </div>
