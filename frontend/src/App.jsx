@@ -55,9 +55,11 @@ function App() {
                 throw new Error("Nessuna risposta dal modello");
             }
 
+            //estrazione dello stile
             const styleMatch = text.match(/<style[\s\S]*?<\/style>/);
             const styleContent = styleMatch ? styleMatch[0] : "";
             const htmlContent = text.replace(/<style[\s\S]*?<\/style>/, "");
+
 
             setExtractedStyle(styleContent);
             setResponse(htmlContent);
@@ -103,7 +105,8 @@ function App() {
         - Se sono presenti esercizi numerali nell'ordine corretto.
         - inserisci anche una sezione <style></style> per la definizione dello stile, gradevole e coerente.
         - non risolvere alcun esercizio, limitati a riportarli nel modo migliore
-        - non inserire (\`\`\`html) e (\`\`\`) all'inizio e alla fine`);
+        - non inserire (\`\`\`html) e (\`\`\`) all'inizio e alla fine
+        - quando trovi delle immagini o illustrazioni, scrivi solo il cosa sono e non parole come immagine o illustrazione`);
     };
 
     return (
