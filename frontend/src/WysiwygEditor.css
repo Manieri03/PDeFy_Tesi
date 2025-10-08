@@ -8,12 +8,13 @@
 }
 
 
-.tox .tox-toolbar__group button[aria-label="Source code"] {
+.tox .tox-toolbar__group button[aria-label="Codice sorgente"] {
     background-color: #2ba9ed !important;
 }
-.tox .tox-toolbar__group button[aria-label="Source code"]:hover {
+.tox .tox-toolbar__group button[aria-label="Codice sorgente"]:hover {
     background-color: #1f7fb3 !important;
 }
+
 
 .tox .tox-tbtn {
     border-radius: 4px !important;

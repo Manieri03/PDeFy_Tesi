@@ -83,10 +83,18 @@ function App() {
     }, [response]);
 
     const downloadHTML = () => {
-        const content = `${extractedStyle}\n${editedHtml || response}`;
+        let content = `${extractedStyle}\n${editedHtml || response}`;
+
+        // parser temporaneo per manipolare dom e rimuovere bottoni di eliminazione esercizi
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(content, "text/html");
+        const deleteButtons = doc.querySelectorAll(".delete-btn");
+        deleteButtons.forEach(btn => btn.remove());
+        const cleanedContent = doc.documentElement.outerHTML;
+
         const element = document.createElement("a");
-        const file = new Blob([content], { type: "text/html" });
-        element.href = URL.createObjectURL(file);
+        const fileBlob = new Blob([cleanedContent], { type: "text/html" });
+        element.href = URL.createObjectURL(fileBlob);
         element.download = "output.html";
         document.body.appendChild(element);
         element.click();
@@ -106,6 +114,7 @@ function App() {
         - inserisci anche una sezione <style></style> per la definizione dello stile, gradevole e coerente.
         - non risolvere alcun esercizio, limitati a riportarli nel modo migliore
         - non inserire (\`\`\`html) e (\`\`\`) all'inizio e alla fine
+        - numera chiaramente gli esercizi in una section nel formato avente un id nel formato: "exercise-n", dove n è il numero dell'esercizio in questione
         - quando trovi delle immagini o illustrazioni, scrivi solo il cosa sono e non parole come immagine o illustrazione`);
     };
 
@@ -153,7 +162,7 @@ function App() {
                         <FileText size={20} className="icon_response" /> Output:
                     </h2>
 
-                    <WysiwygEditor classname="editor_tiny" initialHtml={response} onChange={setEditedHtml} editedHtml={editedHtml} />
+                    <WysiwygEditor classname="editor_tiny" initialHtml={response} onChange={setEditedHtml} editedHtml={editedHtml} style={extractedStyle} />
 
                     <button
                         className="btn_submit"

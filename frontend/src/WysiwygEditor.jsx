@@ -2,7 +2,7 @@ import { Editor } from "@tinymce/tinymce-react";
 import { useRef, useEffect } from "react";
 import "./WysiwygEditor.css";
 
-export default function WysiwygEditor({ initialHtml, onChange }) {
+export default function WysiwygEditor({ initialHtml, onChange, style }) {
     const editorRef = useRef(null);
     const apiKey = "r3755alfoihxdlyldqrjs3xexxp8neyyrifqy34da4hxwjef";
 
@@ -16,35 +16,63 @@ export default function WysiwygEditor({ initialHtml, onChange }) {
         }
     }, [initialHtml]);
 
+    function addDeleteButtons(editor) {
+        const doc = editor.getDoc();
+        const sections = doc.querySelectorAll('section[id^="exercise-"]');
+
+        sections.forEach(section => {
+            if (section.querySelector('.delete-btn')) return;
+
+            const btn = doc.createElement('button');
+            btn.style.cssText = `
+              position: absolute;
+              top: 5px;
+              right: 5px;
+              cursor: pointer;
+              z-index: 1000;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 18px;
+              height:18px;
+              border-radius: 30%;
+              font-weight:bold;
+              background-color: red;
+              color:white;
+              border: 1px solid darkred;
+            `;
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                section.remove();
+            });
+            section.style.position = 'relative';
+            section.appendChild(btn);
+        });
+    }
+
     return (
         <Editor
             apiKey={apiKey}
             className="editor_wysiwyg"
-            onInit={(_evt, editor) => (editorRef.current = editor)}
+            onInit={(_evt, editor) => {
+                editorRef.current = editor;
+                addDeleteButtons(editor);
+            }}
             initialValue={initialHtml || ""}
             init={{
                 height: 600,
                 menubar: false,
                 statusbar: false,
                 toolbar:
-                    "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | code",
+                    "undo redo | bold italic underline | bullist numlist | code",
                 plugins: ["lists", "link", "autolink", "code", "table", "visualblocks", "wordcount"],
+                language: "it",
+                language_url: "https://cdn.tiny.cloud/1/no-api-key/tinymce/6/langs/it.js",
+                content_style: style,
 
                 setup: (editor) => {
-                    if (editor.editorManager.i18n) {
-                        editor.editorManager.i18n.add('it', {
-                            'Cancel': 'Annulla',
-                            'Save': 'Salva'
-                        });
-                    }
-                },
-                content_style: `
-                    body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; padding: 1rem; }
-                    h1,h2,h3,h4,h5,h6 { margin-top: 1em; font-weight: 600; }
-                    p { margin-bottom: 1em; }
-                    table { border-collapse: collapse; width: 100%; }
-                    th, td { border: 1px solid #ccc; padding: 6px; }
-                `,
+                    editor.on('NodeChange', () => addDeleteButtons(editor));
+                }
             }}
             onEditorChange={(newContent) => onChange?.(newContent)}
         />
