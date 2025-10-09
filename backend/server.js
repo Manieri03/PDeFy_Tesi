@@ -8,7 +8,10 @@ import { performance } from "perf_hooks";
 dotenv.config();
 const app = express();
 
+//parser di multipart/form-data
 const upload = multer({ dest: "uploads/" });
+
+//controllo key gemini
 const API_KEY = process.env.GEMINI_API_KEY;
 if (!API_KEY) {
     console.error("GEMINI_API_KEY non trovata nel file .env");
@@ -17,7 +20,6 @@ if (!API_KEY) {
 
 //middleware per parsing del corpo della richiesta
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 //timer per debug
 function makeTimer(label = "TIMER") {
@@ -28,6 +30,7 @@ function makeTimer(label = "TIMER") {
     };
 }
 
+// endpoint POST /api/generate
 app.post("/api/generate", upload.single("file"), async (req, res) => {
     const log = makeTimer("Gemini PDF");
     let filePath = null;
@@ -35,13 +38,17 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
     try {
         log("Inizio richiesta");
         const { prompt } = req.body;
+
+        //validazione prompt e file pdf
         if (!prompt) return res.status(400).json({ error: "Prompt mancante" });
         if (!req.file) return res.status(400).json({ error: "Nessun file PDF caricato" });
-
         filePath = req.file.path;
+
+        //lettura del file
         const fileBuffer = fs.readFileSync(filePath);
         const base64File = fileBuffer.toString("base64");
 
+        //costruzionde del corpo della richiesta: prompt + pdf inline
         const requestBody = {
             contents: [
                 {
@@ -77,11 +84,13 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
             throw new Error(`Errore API Gemini: ${response.status} - ${errTxt}`);
         }
 
+        //parsing della risposta ricevuta dal modello
         const data = await response.json();
         log("Risposta ricevuta");
 
         // Pulizia
         fs.unlinkSync(filePath);
+        //ritorno risposta al client
         res.json(data);
     } catch (err) {
         console.error("Errore backend:", err);

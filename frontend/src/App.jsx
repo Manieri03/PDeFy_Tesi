@@ -19,12 +19,12 @@ function App() {
         e.preventDefault();
         setError("");
         setResponse("");
-        
+
+        //validazione input
         if (!prompt) {
             alert("Inserisci un prompt");
             return;
         }
-
         if (!file) {
             alert("Seleziona un file PDF!");
             return;
@@ -33,34 +33,39 @@ function App() {
         setLoading(true);
 
         try {
+            //costruzione formdata
             const formData = new FormData();
             formData.append("prompt", prompt);
             formData.append("file", file);
 
+            //invio al backend
             const res = await fetch("/api/generate", {
                 method: "POST",
                 body: formData,
             });
 
+            //controllo di errori di rete
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.error || `Errore HTTP: ${res.status}`);
             }
 
+            //parsing della risposta del modello
             const data = await res.json();
-            console.log("Risposta completa:", data); // Debug
+            //console.log("Risposta completa:", data); Debug
 
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (!text) {
                 throw new Error("Nessuna risposta dal modello");
             }
 
-            //estrazione dello stile
+            //estrazione dello stile dall'intero testo
             const styleMatch = text.match(/<style[\s\S]*?<\/style>/);
             const styleContent = styleMatch ? styleMatch[0] : "";
+            //estrazione del solo html
             const htmlContent = text.replace(/<style[\s\S]*?<\/style>/, "");
 
-
+            //salvataggio degli stati di React
             setExtractedStyle(styleContent);
             setResponse(htmlContent);
             setEditedHtml(htmlContent);
@@ -92,6 +97,7 @@ function App() {
         deleteButtons.forEach(btn => btn.remove());
         const cleanedContent = doc.documentElement.outerHTML;
 
+        //creazione del file in output e download
         const element = document.createElement("a");
         const fileBlob = new Blob([cleanedContent], { type: "text/html" });
         element.href = URL.createObjectURL(fileBlob);
@@ -101,6 +107,7 @@ function App() {
         document.body.removeChild(element);
     };
 
+    //Prompt predefinito completo per Html (perfezionabile)
     const handleHtmlPreset = () => {
         setPrompt(`Converti il contenuto del PDF fornito in un HTML completo, ben strutturato e semantico. 
         - Usa tag corretti per titoli (<h1>-<h6>), paragrafi (<p>), liste (<ul>/<ol>), tabelle (<table>), immagini (<img>).

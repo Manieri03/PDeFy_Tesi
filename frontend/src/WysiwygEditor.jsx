@@ -24,6 +24,8 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             if (section.querySelector('.delete-btn')) return;
 
             const btn = doc.createElement('button');
+            btn.className = 'delete-btn';
+            btn.textContent = "x";
             btn.style.cssText = `
               position: absolute;
               top: 5px;
@@ -39,8 +41,10 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
               font-weight:bold;
               background-color: red;
               color:white;
-              border: 1px solid darkred;
+              border: none;
             `;
+            btn.addEventListener('mouseenter', () => btn.style.backgroundColor = 'darkred');
+            btn.addEventListener('mouseleave', () => btn.style.backgroundColor = 'red');
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 section.remove();
