@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
 import { performance } from "perf_hooks";
-import pdfParse from "pdf-parse";
 
 dotenv.config();
 const app = express();
@@ -31,54 +30,6 @@ function makeTimer(label = "TIMER") {
     };
 }
 
-async function extractImagesFromPDF(filePath) {
-    const dataBuffer = fs.readFileSync(filePath);
-    const images = [];
-
-    try {
-        // Cerca marker JPEG nel PDF
-        const startMarker = Buffer.from([0xFF, 0xD8]); // JPEG start
-        const endMarker = Buffer.from([0xFF, 0xD9]); // JPEG end
-
-        let pos = 0;
-        let imgIndex = 0;
-
-        while (pos < dataBuffer.length) {
-            // Trova inizio JPEG
-            const startPos = dataBuffer.indexOf(startMarker, pos);
-            if (startPos === -1) break;
-
-            // Trova fine JPEG
-            const endPos = dataBuffer.indexOf(endMarker, startPos + 2);
-            if (endPos === -1) break;
-
-            // Estrai l'immagine completa (incluso end marker)
-            const imageBuffer = dataBuffer.slice(startPos, endPos + 2);
-
-            // Verifica che sia una JPEG valida (dimensione minima ragionevole)
-            if (imageBuffer.length > 100) {
-                const base64 = imageBuffer.toString('base64');
-                images.push({
-                    index: imgIndex++,
-                    type: 'jpeg',
-                    base64: `data:image/jpeg;base64,${base64}`,
-                    size: imageBuffer.length
-                });
-                console.log(`Trovata immagine ${imgIndex}: ${imageBuffer.length} bytes`);
-            }
-
-            pos = endPos + 2;
-        }
-
-        console.log(`Totale immagini estratte: ${images.length}`);
-
-    } catch (err) {
-        console.error("Errore estrazione immagini:", err);
-    }
-
-    return images;
-}
-
 // endpoint POST /api/generate
 app.post("/api/generate", upload.single("file"), async (req, res) => {
     const log = makeTimer("Gemini PDF");
@@ -96,9 +47,8 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         //lettura del file
         const fileBuffer = fs.readFileSync(filePath);
         const base64File = fileBuffer.toString("base64");
-        const extractedImages = extractImagesFromPDF(filePath);
 
-        //costruzionde del corpo della richiesta: prompt + pdf inline
+        //costruzione del corpo della richiesta: prompt + pdf inline
         const requestBody = {
             contents: [
                 {
@@ -136,22 +86,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
 
         //parsing della risposta ricevuta dal modello
         const data = await response.json();
-
-        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-        // Sostituisci i placeholder [IMAGE_X] con le immagini estratte in base64
-        text = text.replace(/\[IMAGE_(\d+)\]/g, (match, imgIndex) => {
-            const index = parseInt(imgIndex);
-            const img = extractedImages[index];
-            if (img) {
-                return `<img src="${img.base64}" alt="Immagine ${index + 1}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
-            }
-            return `<!-- Immagine ${index} non trovata -->`;
-        });
-
         log("Risposta ricevuta");
-
-        data.candidates[0].content.parts[0].text = text;
 
         // Pulizia
         fs.unlinkSync(filePath);
