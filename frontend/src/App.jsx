@@ -121,8 +121,10 @@ function App() {
         - inserisci anche una sezione <style></style> per la definizione dello stile, gradevole e coerente.
         - non risolvere alcun esercizio, limitati a riportarli nel modo migliore
         - non inserire (\`\`\`html) e (\`\`\`) all'inizio e alla fine
+        - quando c'è un esercizio con degli spazi per inserire lettere tra parole, racchiudi le parole in uno span
+        - quando c'è un esercizio con degli spazi per inserire parole, racchiudi le frasi in uno span
         - numera chiaramente gli esercizi in una section nel formato avente un id nel formato: "exercise-n", dove n è il numero dell'esercizio in questione
-        - quando trovi delle immagini o illustrazioni, scrivi solo il cosa sono e non parole come immagine o illustrazione`);
+        - quando trovi delle immagini o illustrazioni, fai un img con alt solo il cosa sono e non parole come immagine o illustrazione`);
     };
 
     return (
