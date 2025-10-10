@@ -6,11 +6,18 @@
   justify-content: center;
   align-items: center;
   h1{
-    color: #176087;
+    color: white;
     font-size: 3.2em;
     line-height: 1.1;
     margin-top: 0;
   }
+}
+
+.header_div{
+  background-color: #1b709e;
+  width: 70%;
+  border-radius: 50%;
+  corner-shape:squircle;
 }
 
 .container_div{
@@ -18,7 +25,7 @@
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  gap: 3rem;
+  gap: 2.1rem;
 }
 
 .form_input{
@@ -74,6 +81,7 @@
 }
 
 textarea{
+  font-family: 'Chau Philomene One', sans-serif;
   width: 40vw;
   padding: 0.8rem;
   resize: none;

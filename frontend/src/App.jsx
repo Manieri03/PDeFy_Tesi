@@ -124,7 +124,7 @@ function App() {
         - quando c'è un esercizio con degli spazi per inserire lettere tra parole, racchiudi le parole in uno span
         - quando c'è un esercizio con degli spazi per inserire parole, racchiudi le frasi in uno span
         - numera chiaramente gli esercizi in una section nel formato avente un id nel formato: "exercise-n", dove n è il numero dell'esercizio in questione
-        - quando trovi delle immagini o illustrazioni, fai un img con alt solo il cosa sono e non parole come immagine o illustrazione`);
+        - dove trovi un'immagine, inserisci un tag placeholder come [IMAGE_PLACEHOLDER_PAGEX_FIGURAY]`);
     };
 
     return (
