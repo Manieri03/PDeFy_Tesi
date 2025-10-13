@@ -54,7 +54,7 @@ function App() {
             const data = await res.json();
             //console.log("Risposta completa:", data); Debug
 
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            const text = data.html;
             if (!text) {
                 throw new Error("Nessuna risposta dal modello");
             }
@@ -119,6 +119,7 @@ function App() {
         - Rispondi solo con il codice HTML, senza spiegazioni o testo extra.
         - Se sono presenti esercizi numerali nell'ordine corretto.
         - inserisci anche una sezione <style></style> per la definizione dello stile, gradevole e coerente.
+        - alla classe ".img_pdf" diminuisci la grandezza fino a 30px.
         - non risolvere alcun esercizio, limitati a riportarli nel modo migliore
         - non inserire (\`\`\`html) e (\`\`\`) all'inizio e alla fine
         - quando c'è un esercizio con degli spazi per inserire lettere tra parole, racchiudi le parole in uno span

@@ -4,6 +4,28 @@ import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
 import { performance } from "perf_hooks";
+import { execFile } from "child_process";
+
+function extractImages(pdfPath, outputDir = "uploads/tmp_images") {
+    return new Promise((resolve, reject) => {
+        execFile("python", ["extract_images.py", pdfPath, outputDir], (err, stdout, stderr) => {
+            if (err) return reject(err);
+            resolve(JSON.parse(stdout)); // supponendo che lo script Python ritorni JSON
+        });
+    });
+}
+function replacePlaceholders(html, images) {
+    let output = html;
+    images.forEach((img, index) => {
+        const placeholder = `[IMAGE_${index + 1}]`;
+        if (output.includes(placeholder)) {
+            const imgTag = `<img class="img_pdf" src="data:image/${img.ext};base64,${fs.readFileSync(img.path).toString("base64")}" alt="image_${index + 1}" />`;
+            output = output.replaceAll(placeholder, imgTag);
+        }
+    });
+    return output;
+}
+
 
 dotenv.config();
 const app = express();
@@ -87,15 +109,22 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         //parsing della risposta ricevuta dal modello
         const data = await response.json();
         log("Risposta ricevuta");
+        const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-        // Pulizia
-        fs.unlinkSync(filePath);
+        // estrazione immagini dal PDF
+        const images = await extractImages(filePath);
+
+        // sostituzione dei placeholder [IMAGE_X] con immagini base64
+        const htmlWithImages = replacePlaceholders(htmlContent, images);
+
         //ritorno risposta al client
-        res.json(data);
+        res.json({ html: htmlWithImages, images });
     } catch (err) {
         console.error("Errore backend:", err);
         if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
         res.status(500).json({ error: err.message });
+    }finally{
+        if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 });
 
