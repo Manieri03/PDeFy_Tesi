@@ -12,6 +12,7 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             const currentContent = editor.getContent();
             if (currentContent !== initialHtml) {
                 editor.setContent(initialHtml);
+                setTimeout(() => addDeleteButtons(editor), 200);
             }
         }
     }, [initialHtml]);
@@ -60,7 +61,7 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             className="editor_wysiwyg"
             onInit={(_evt, editor) => {
                 editorRef.current = editor;
-                addDeleteButtons(editor);
+                setTimeout(() => addDeleteButtons(editor), 300);
             }}
             initialValue={initialHtml || ""}
             init={{
@@ -75,8 +76,13 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
                 content_style: style,
 
                 setup: (editor) => {
-                    editor.on('NodeChange', () => addDeleteButtons(editor));
-                }
+                    editor.on("NodeChange", () => {
+                        setTimeout(() => addDeleteButtons(editor), 100);
+                    });
+                    editor.on("SetContent", () => {
+                        setTimeout(() => addDeleteButtons(editor), 100);
+                    });
+                },
             }}
             onEditorChange={(newContent) => onChange?.(newContent)}
         />

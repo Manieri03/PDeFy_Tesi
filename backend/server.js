@@ -111,10 +111,8 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         log("Risposta ricevuta");
         const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-        // estrazione immagini dal PDF
+        // estrazione e sostituzione placeholder immagini dal PDF
         const images = await extractImages(filePath);
-
-        // sostituzione dei placeholder [IMAGE_X] con immagini base64
         const htmlWithImages = replacePlaceholders(htmlContent, images);
 
         //ritorno risposta al client
