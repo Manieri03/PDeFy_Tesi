@@ -241,7 +241,6 @@ function App() {
 
             {loading && currentFile && (
                 <div className="loading_div">
-                    <Loader className="spin" size={24} />
                     <p>Elaborazione di: <b>{currentFile}</b></p>
                 </div>
             )}

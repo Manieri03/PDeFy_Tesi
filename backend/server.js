@@ -6,6 +6,20 @@ import fs from "fs";
 import { performance } from "perf_hooks";
 import { execFile } from "child_process";
 
+function clearDirectory(dirPath) {
+    if (fs.existsSync(dirPath)) {
+        fs.readdirSync(dirPath).forEach(file => {
+            const filePath = `${dirPath}/${file}`;
+            if (fs.lstatSync(filePath).isDirectory()) {
+                clearDirectory(filePath);
+                fs.rmdirSync(filePath);
+            } else {
+                fs.unlinkSync(filePath);
+            }
+        });
+    }
+}
+
 function extractImages(pdfPath, outputDir = "uploads/tmp_images") {
     return new Promise((resolve, reject) => {
         execFile("python", ["extract_images.py", pdfPath, outputDir], (err, stdout, stderr) => {
@@ -30,8 +44,14 @@ function replacePlaceholders(html, images) {
 dotenv.config();
 const app = express();
 
+const ensureDir = (dir) => {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+};
+ensureDir("uploads/pdf");
+ensureDir("uploads/tmp_images");
+
 //parser di multipart/form-data
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ dest: "uploads/pdf/" });
 
 //controllo key gemini
 const API_KEY = process.env.GEMINI_API_KEY;
@@ -122,7 +142,15 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
         res.status(500).json({ error: err.message });
     }finally{
-        if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        setTimeout(() => {
+            try {
+                clearDirectory("uploads/pdf");
+                clearDirectory("uploads/tmp_images");
+                console.log("Cartelle temporanee pulite");
+            } catch (cleanupErr) {
+                console.error("Errore nella pulizia:", cleanupErr);
+            }
+        }, 2000);
     }
 });
 
