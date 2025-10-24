@@ -75,8 +75,33 @@ if (pdfFiles.length === 0) {
 }
 
 const prompt = HTML_PROMPT;
+const MAX_CONCURRENT = 3;
+
+async function processInBatches(files, batchSize) {
+    for (let i = 0; i < files.length; i += batchSize) {
+        const batch = files.slice(i, i + batchSize);
+        console.log(`\nBatch ${i / batchSize + 1}:`, batch);
+
+        await Promise.all(
+            batch.map(async (pdfPath) => {
+                console.log(`Elaborazione: ${pdfPath}`);
+                try {
+                    await processPdf(pdfPath, prompt);
+                } catch (err) {
+                    console.error(`Errore su ${pdfPath}:`, err.message);
+                }
+            })
+        );
+    }
+}
 
 (async () => {
+    await processInBatches(pdfFiles, MAX_CONCURRENT);
+    console.log("\nTutti i PDF elaborati con successo.");
+})();
+
+/*
+* (async () => {
     for (const pdfPath of pdfFiles) {
         console.log(`Elaborazione: ${pdfPath}`);
         try {
@@ -84,5 +109,4 @@ const prompt = HTML_PROMPT;
         } catch (err) {
             console.error("Errore:", err.message);
         }
-    }
-})();
+*/
