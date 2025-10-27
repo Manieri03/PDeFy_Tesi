@@ -33,7 +33,12 @@ function replacePlaceholders(html, images) {
     images.forEach((img, index) => {
         const placeholder = `[IMAGE_${index + 1}]`;
         if (output.includes(placeholder)) {
-            const imgTag = `<img class="img_pdf" src="data:image/${img.ext};base64,${fs.readFileSync(img.path).toString("base64")}" alt="image_${index + 1}" />`;
+            const imgTag = `<img 
+                class="img_pdf img-${index + 1}" 
+                src="data:image/${img.ext};base64,${fs.readFileSync(img.path).toString("base64")}" 
+                style="width:${img.width}px; height:${img.height}px;" 
+                alt="image_${index + 1}" 
+            />`;
             output = output.replaceAll(placeholder, imgTag);
         }
     });

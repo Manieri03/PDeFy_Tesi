@@ -9,7 +9,6 @@ export const HTML_PROMPT =`Converti il contenuto del PDF fornito in un HTML comp
         - Rispondi solo con il codice HTML, senza spiegazioni o testo extra.
         - Se sono presenti esercizi numerali nell'ordine corretto.
         - inserisci anche una sezione <style></style> per la definizione dello stile, gradevole e coerente.
-        - alla classe ".img_pdf" diminuisci la grandezza fino a 50px.
         - non risolvere NESSUN esercizio.
         - non inserire (\`\`\`html) e (\`\`\`) all'inizio e alla fine
         - quando c'è un esercizio con degli spazi per inserire lettere tra parole, racchiudi le parole in uno span
