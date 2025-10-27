@@ -28,21 +28,56 @@ function extractImages(pdfPath, outputDir = "uploads/tmp_images") {
         });
     });
 }
-function replacePlaceholders(html, images) {
-    let output = html;
-    images.forEach((img, index) => {
+function replacePlaceholders(html, extractedImages) {
+    // ordina le immagini per pagina, poi per y (alto -> basso), poi per x (sinistra -> destra)
+    const sortedImages = [...extractedImages].sort((a, b) => {
+        if (a.page !== b.page) return a.page - b.page;
+        if (a.y !== b.y) return a.y - b.y;
+        return a.x - b.x;
+    });
+
+    // sostituisci i placeholder nell'ordine
+    sortedImages.forEach((img, index) => {
         const placeholder = `[IMAGE_${index + 1}]`;
-        if (output.includes(placeholder)) {
-            const imgTag = `<img 
-                class="img_pdf img-${index + 1}" 
-                src="data:image/${img.ext};base64,${fs.readFileSync(img.path).toString("base64")}" 
-                style="width:${img.width}px; height:${img.height}px;" 
-                alt="image_${index + 1}" 
-            />`;
-            output = output.replaceAll(placeholder, imgTag);
+        const base64 = fs.readFileSync(img.path).toString("base64");
+        const imgTag = `<img src="data:image/${img.ext};base64,${base64}" style="width:${img.width}px;height:${img.height}px;" />`;
+        html = html.replaceAll(placeholder, imgTag);
+    });
+
+    return html;
+}
+
+
+
+function matchImage(placeholderInfo, extractedImages) {
+    const samePage = extractedImages.filter(img => img.page === placeholderInfo.page);
+
+    let bestMatch = null;
+    let minDist = Infinity;
+
+    samePage.forEach(img => {
+        const dist = Math.hypot(
+            img.x - placeholderInfo.x,
+            img.y - placeholderInfo.y
+        );
+        if (dist < minDist) {
+            minDist = dist;
+            bestMatch = img;
         }
     });
-    return output;
+
+    return bestMatch;
+}
+
+function generateMappingFromImages(extractedImages) {
+    return extractedImages.map((img, index) => {
+        return {
+            placeholder: `[IMAGE_${index + 1}]`,
+            page: img.page,
+            x: img.x,
+            y: img.y
+        };
+    });
 }
 
 
@@ -94,6 +129,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         //lettura del file
         const fileBuffer = fs.readFileSync(filePath);
         const base64File = fileBuffer.toString("base64");
+        const images = await extractImages(filePath);
 
         //costruzione del corpo della richiesta: prompt + pdf inline
         const requestBody = {
@@ -103,6 +139,9 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
                     parts: [
                         //parti della richiesta, prompt + pdf inline
                         { text: prompt },
+                        {
+                            text: "Metadata immagini estratte:\n" + JSON.stringify(images)
+                        },
                         {
                             inlineData: {
                                 data: base64File,
@@ -136,12 +175,15 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         log("Risposta ricevuta");
         const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-        // estrazione e sostituzione placeholder immagini dal PDF
-        const images = await extractImages(filePath);
-        const htmlWithImages = replacePlaceholders(htmlContent, images);
+        const mappingPart = data?.candidates?.[0]?.content?.parts?.[1]?.text;
+        let mapping = [];
+        mapping = generateMappingFromImages(images);
 
-        //ritorno risposta al client
-        res.json({ html: htmlWithImages, images });
+        const finalHtml = replacePlaceholders(htmlContent, images);
+
+        res.json({ html: finalHtml, mapping, images });
+
+
     } catch (err) {
         console.error("Errore backend:", err);
         if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);

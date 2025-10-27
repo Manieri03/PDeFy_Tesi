@@ -17,4 +17,5 @@ export const HTML_PROMPT =`Converti il contenuto del PDF fornito in un HTML comp
         - dove trovi un'immagine, inserisci un tag placeholder nel formato [IMAGE_X], ben centrato in un contenitore dove andra poi l'immagine, dove X è l'indice progressivo dell'immagine nel PDF.
         - Non aggiungere altri tag <img>, <image>, <figure> o immagini di esempio.
         - Non generare descrizioni, alt testuali inventati o immagini illustrative: il backend sostituirà i placeholder con le vere immagini estratte.
-        - Quando individui un esercizio dove ci si aspetta che si riempia con parole o lettere, in quei punti metti visivamente dei trattini per capire che bisogna scriverci e marca le sezioni con uno span specifico.`;
+        - Quando individui un esercizio dove ci si aspetta che si riempia con parole o lettere, in quei punti metti visivamente dei trattini per capire che bisogna scriverci e marca le sezioni con uno span specifico.
+`;
