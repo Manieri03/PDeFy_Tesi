@@ -1,123 +1,92 @@
+# extract_layout.py
 import sys
-import json
 import os
-import fitz
+import json
+import numpy as np
+from pdf2image import convert_from_path
+import layoutparser as lp
+from PIL import Image
+import pytesseract
 
-def ensure_dir(p):
-    os.makedirs(p, exist_ok=True)
+pdf_path = sys.argv[1]
+output_dir = sys.argv[2]
 
-def save_image(base_image, out_path):
-    with open(out_path, "wb") as f:
-        f.write(base_image["image"])
+os.makedirs(output_dir, exist_ok=True)
+images_dir = os.path.join(output_dir, "images")
+os.makedirs(images_dir, exist_ok=True)
 
-def main():
-    if len(sys.argv) < 3:
-        print(json.dumps({"error":"usage: extract_layout.py input.pdf output_dir"}))
-        sys.exit(1)
+# Converti PDF in immagini (una per pagina)
+pages_images = convert_from_path(pdf_path, dpi=150)
+all_pages_data = []
+image_index = 1
 
-    pdf_path = sys.argv[1]
-    output_dir = sys.argv[2]
+# Carica modello LayoutParser
+model = lp.PaddleDetectionLayoutModel(
+    "lp://HJDataset/faster_rcnn_R_50_FPN_1x/config",  # esempio modello leggero
+    threshold=0.5,
+    device='cpu'
+)
 
-    ensure_dir(output_dir)
-    images_dir = os.path.join(output_dir, "images")
-    ensure_dir(images_dir)
+for page_idx, page_image in enumerate(pages_images, start=1):
+    img_array = np.array(page_image)
 
-    doc = fitz.open(pdf_path)
-    pages_out = []
+    # Rilevamento layout
+    layout = model.detect(img_array)
 
-    img_global_index = 1
+    page_blocks = []
 
-    for page_index, page in enumerate(doc):
-        page_num = page_index + 1
-        page_w = float(page.rect.width)
-        page_h = float(page.rect.height)
+    for b in layout:
+        x0, y0, x1, y1 = b.coordinates
+        block_type = b.type
 
-        page_dict = {
-            "page": page_num,
-            "width": page_w,
-            "height": page_h,
-            "blocks": []
-        }
-
-    for b in page.get_text("dict")["blocks"]:
-        if b["type"] != 0:  # solo testo
-            continue
-        lines = b.get("lines", [])
-        text_content = " ".join([span["text"] for line in lines for span in line["spans"]]).strip()
-        if not text_content:
-            continue
-        max_font_size = max(span.get("size", 12) for line in lines for span in line["spans"])
-        role = "title" if max_font_size > 14 and len(text_content.split()) < 10 else "paragraph"
-        font_name = lines[0]["spans"][0].get("font", "unknown") if lines and lines[0]["spans"] else "unknown"
-
-        page_dict["blocks"].append({
-            "type": "text",
-            "x": b["bbox"][0] / page_w,
-            "y": b["bbox"][1] / page_h,
-            "width": (b["bbox"][2] - b["bbox"][0]) / page_w,
-            "height": (b["bbox"][3] - b["bbox"][1]) / page_h,
-            "text": text_content,
-            "font_size": max_font_size,
-            "font_name": font_name,
-            "role": role
-        })
-
-
-        # Blocchi immagini
-        for img in page.get_images(full=True):
-            xref = img[0]
-            base_image = doc.extract_image(xref)
-            ext = base_image.get("ext", "png")
-            fname = f"page{page_num}_img{img_global_index}.{ext}"
-            img_path = os.path.join(images_dir, fname)
-            save_image(base_image, img_path)
-
-            found_bbox = False
-            for inst in page.get_image_info(xrefs=True):
-                if inst.get("xref") == xref:
-                    bbox = inst.get("bbox", [0,0,0,0])
-                    x0, y0, x1, y1 = bbox
-                    page_dict["blocks"].append({
-                        "type": "image",
-                        "x": 0 if not found_bbox else x0 / page_w,
-                        "y": 0 if not found_bbox else y0 / page_h,
-                        "width": 0 if not found_bbox else (x1 - x0) / page_w,
-                        "height": 0 if not found_bbox else (y1 - y0) / page_h,
-                        "path": os.path.join("images", fname),
-                        "ext": ext,
-                        "image_index": img_global_index,
-                        "original_size": {"width": base_image.get("width", 0), "height": base_image.get("height", 0)},
-                        "dpi": base_image.get("dpi", 300),
-                        "format": ext
-                    })
-
-                    found_bbox = True
-
-            if not found_bbox:
-                page_dict["blocks"].append({
-                    "type": "image",
-                    "x": 0,
-                    "y": 0,
-                    "width": 0,
-                    "height": 0,
-                    "path": os.path.join("images", fname),
-                    "ext": ext,
-                    "image_index": img_global_index
+        if block_type in ["Text", "Title", "List"]:
+            # OCR solo sul blocco testuale
+            cropped = page_image.crop((x0, y0, x1, y1))
+            text = pytesseract.image_to_string(cropped, lang="ita").strip().replace("\n", " ")
+            if text:
+                page_blocks.append({
+                    "type": "text",
+                    "text": text,
+                    "page": page_idx,
+                    "bbox": [x0, y0, x1, y1],
+                    "x": x0,
+                    "y": y0,
+                    "width": x1 - x0,
+                    "height": y1 - y0,
+                    "font": None,
+                    "size": None,
                 })
+        elif block_type in ["Figure", "Table"]:
+            # Salva immagine del blocco
+            cropped = page_image.crop((x0, y0, x1, y1))
+            img_filename = f"page{page_idx}_img{image_index}.png"
+            img_path = os.path.join(images_dir, img_filename)
+            cropped.save(img_path)
+            page_blocks.append({
+                "type": "image",
+                "page": page_idx,
+                "bbox": [x0, y0, x1, y1],
+                "x": x0,
+                "y": y0,
+                "width": x1 - x0,
+                "height": y1 - y0,
+                "path": img_path,
+                "ext": "png",
+                "index": image_index
+            })
+            image_index += 1
 
-            img_global_index += 1
+    all_pages_data.append({
+        "page_number": page_idx,
+        "width": img_array.shape[1],
+        "height": img_array.shape[0],
+        "blocks": page_blocks
+    })
 
-        page_dict["blocks"].sort(key=lambda b: (b["y"], b["x"]))
-        pages_out.append(page_dict)
+# Salva JSON
+output_json = os.path.join(output_dir, "layout.json")
+with open(output_json, "w", encoding="utf-8") as f:
+    json.dump({"pages": all_pages_data, "images_dir": images_dir}, f, ensure_ascii=False, indent=2)
 
-    out = {
-        "pages": pages_out,
-        "images_dir": images_dir,
-        "units": "normalized"  # valori tra 0 e 1
-    }
-
-    sys.stdout.reconfigure(encoding='utf-8')
-    print(json.dumps(out, ensure_ascii=False))
-
-if __name__ == "__main__":
-    main()
+# Output per Node.js
+print(json.dumps({"pages": all_pages_data, "images_dir": images_dir}))

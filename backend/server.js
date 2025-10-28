@@ -275,9 +275,79 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
 
 
 
+app.post("/api/generate-layout", upload.single("file"), async (req, res) => {
+    const log = makeTimer("Gemini Layout");
+    let filePath = null;
+    try {
+        log("Inizio request layout-aware");
+        const { prompt } = req.body;
+        if (!prompt) return res.status(400).json({ error: "Prompt mancante" });
+        if (!req.file) return res.status(400).json({ error: "Nessun file PDF caricato" });
+        filePath = req.file.path;
+
+        const outputDir = path.join("uploads", "layout_tmp", path.basename(filePath));
+        fs.mkdirSync(outputDir, { recursive: true });
+
+        const pyResult = await new Promise((resolve, reject) => {
+            execFile("python", ["extract_layout.py", filePath, outputDir], { maxBuffer: 1024*1024*50 }, (err, stdout, stderr) => {
+                if (err) return reject(err);
+                try { resolve(JSON.parse(stdout)); }
+                catch(parseErr) { reject(parseErr); }
+            });
+        });
+
+        // raccogli immagini in array
+        let images = [];
+        if(fs.existsSync(pyResult.images_dir)){
+            images = fs.readdirSync(pyResult.images_dir).map(fname => ({
+                filename: fname,
+                path: path.join(pyResult.images_dir, fname),
+                base64: fs.readFileSync(path.join(pyResult.images_dir, fname)).toString("base64")
+            }));
+        }
+
+        // invio a Gemini con prompt + layout JSON
+        const fileBuffer = fs.readFileSync(filePath);
+        const base64File = fileBuffer.toString("base64");
+
+        const requestBody = {
+            contents: [
+                { role: "user", parts: [
+                        { text: prompt },
+                        { text: "METADATA_LAYOUT_JSON:\n" + JSON.stringify(pyResult) }
+                    ]}
+            ]
+        };
+
+        const response = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestBody) }
+        );
+
+        if (!response.ok) {
+            const errTxt = await response.text();
+            throw new Error(`Errore Gemini: ${response.status} - ${errTxt}`);
+        }
+
+        const data = await response.json();
+        const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const finalHtml = replacePlaceholders2(htmlContent, pyResult);
+
+        res.json({ html: finalHtml, layout: pyResult, images });
+    } catch(err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 
 
+
+
+
+
+
+/*
 //pipeline alternativa
 app.post("/api/generate-layout", upload.single("file"), async (req, res) => {
     const log = makeTimer("Gemini Layout");
@@ -377,6 +447,8 @@ app.post("/api/generate-layout", upload.single("file"), async (req, res) => {
         log("Fine richiesta layout-aware");
     }
 });
+
+ */
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Backend avviato su http://localhost:${PORT}`));

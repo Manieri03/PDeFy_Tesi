@@ -51,7 +51,7 @@ function App() {
                 formData.append("prompt", prompt);
                 formData.append("file", f);
 
-                const res = await fetch("/api/generate", {
+                const res = await fetch("/api/generate-layout", {
                     method: "POST",
                     body: formData,
                 });
@@ -118,7 +118,7 @@ function App() {
             formData.append("file", file);
 
             //invio al backend
-            const res = await fetch("/api/generate", {
+            const res = await fetch("/api/generate-layout", {
                 method: "POST",
                 body: formData,
             });
