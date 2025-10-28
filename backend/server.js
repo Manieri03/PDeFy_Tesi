@@ -5,6 +5,7 @@ import multer from "multer";
 import fs from "fs";
 import { performance } from "perf_hooks";
 import { execFile } from "child_process";
+import path from "path";
 
 function clearDirectory(dirPath) {
     if (fs.existsSync(dirPath)) {
@@ -24,12 +25,12 @@ function extractImages(pdfPath, outputDir = "uploads/tmp_images") {
     return new Promise((resolve, reject) => {
         execFile("python", ["extract_images.py", pdfPath, outputDir], (err, stdout, stderr) => {
             if (err) return reject(err);
-            resolve(JSON.parse(stdout)); // supponendo che lo script Python ritorni JSON
+            resolve(JSON.parse(stdout));
         });
     });
 }
 function replacePlaceholders(html, extractedImages) {
-    // ordina le immagini per pagina, poi per y (alto -> basso), poi per x (sinistra -> destra)
+    // ordina le immagini per pagina, poi per y , poi per x
     const sortedImages = [...extractedImages].sort((a, b) => {
         if (a.page !== b.page) return a.page - b.page;
         if (a.y !== b.y) return a.y - b.y;
@@ -47,27 +48,59 @@ function replacePlaceholders(html, extractedImages) {
     return html;
 }
 
+function replacePlaceholders2(html, layout) {
+    if (!layout || !Array.isArray(layout.pages)) return html;
 
+    let out = "";
 
-function matchImage(placeholderInfo, extractedImages) {
-    const samePage = extractedImages.filter(img => img.page === placeholderInfo.page);
+    layout.pages.forEach((page) => {
+        if (!page.blocks || !Array.isArray(page.blocks)) return;
 
-    let bestMatch = null;
-    let minDist = Infinity;
+        const wrapperWidth = Math.round(page.width);
+        const wrapperHeight = Math.round(page.height);
 
-    samePage.forEach(img => {
-        const dist = Math.hypot(
-            img.x - placeholderInfo.x,
-            img.y - placeholderInfo.y
-        );
-        if (dist < minDist) {
-            minDist = dist;
-            bestMatch = img;
-        }
+        let pageContent = "";
+
+        page.blocks.forEach(block => {
+            const leftPx = Math.round(block.x * page.width);
+            const topPx = Math.round(block.y * page.height);
+            const widthPx = Math.round(block.width * page.width);
+            const heightPx = Math.round(block.height * page.height);
+
+            if(block.type === "text") {
+                let tag = "p";
+                if(block.role === "title") tag = "h1";
+                pageContent += `<${tag} class="text-block" style="
+            position:absolute;
+            left:${leftPx}px;
+            top:${topPx}px;
+            width:${widthPx}px;
+            font-size:${block.font_size}px;
+        ">${block.text}</${tag}>`;
+            }
+
+            if(block.type === "image") {
+                const absPath = path.join(layout.images_dir, path.basename(block.path));
+                if(!fs.existsSync(absPath)) return;
+                const base64 = fs.readFileSync(absPath).toString("base64");
+                pageContent += `<div class="image-wrapper" style="
+            position:absolute;
+            left:${leftPx}px;
+            top:${topPx}px;
+            width:${widthPx}px;
+            height:${heightPx}px;
+        "><img src="data:image/${block.ext};base64,${base64}" style="width:100%;height:100%;object-fit:contain;"></div>`;
+            }
+        });
+
+        out += `<div class="page-wrapper" style="position:relative; width:${wrapperWidth}px; height:${wrapperHeight}px;">${pageContent}</div>`;
     });
 
-    return bestMatch;
+    return out;
 }
+
+
+
 
 function generateMappingFromImages(extractedImages) {
     return extractedImages.map((img, index) => {
@@ -129,7 +162,42 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         //lettura del file
         const fileBuffer = fs.readFileSync(filePath);
         const base64File = fileBuffer.toString("base64");
-        const images = await extractImages(filePath);
+        let images = await extractImages(filePath);
+
+// ordina e normalizza immagini e blocchi testo
+        images = images
+            .map(img => ({ ...img, text: img.text?.replace(/\s+/g, " ").trim() || "" }))
+            .sort((a, b) => {
+                if (a.page !== b.page) return a.page - b.page;
+                if (a.y !== b.y) return a.y - b.y;
+                return a.x - b.x;
+            });
+
+// placeholder stabile
+        images.forEach((img, index) => {
+            img.placeholder = `[IMAGE_${index + 1}]`;
+        });
+
+// se vuoi trattare anche blocchi di testo, puoi creare un array "allBlocks"
+        const allBlocks = [
+            ...images.map(img => ({ type: "image", ...img })),
+            // se avessi già dei blocchi testo estratti, li inserisci qui
+        ];
+
+// trim e normalizzazione testo
+        allBlocks.forEach(block => {
+            if(block.type === "text" && block.text) {
+                block.text = block.text.replace(/\s+/g, " ").trim();
+            }
+        });
+
+// ordinamento deterministico di tutti i blocchi
+        allBlocks.sort((a, b) => {
+            if (a.page !== b.page) return a.page - b.page;
+            if (a.y !== b.y) return a.y - b.y;
+            return a.x - b.x;
+        });
+
 
         //costruzione del corpo della richiesta: prompt + pdf inline
         const requestBody = {
@@ -198,6 +266,115 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
                 console.error("Errore nella pulizia:", cleanupErr);
             }
         }, 2000);
+    }
+});
+
+
+
+
+
+
+
+
+
+
+//pipeline alternativa
+app.post("/api/generate-layout", upload.single("file"), async (req, res) => {
+    const log = makeTimer("Gemini Layout");
+    let filePath = null;
+    try {
+        log("Inizio request");
+        const { prompt } = req.body;
+        if (!prompt) return res.status(400).json({ error: "Prompt mancante" });
+        if (!req.file) return res.status(400).json({ error: "Nessun file PDF caricato" });
+        filePath = req.file.path;
+
+        // directory output separata per questa pipeline
+        const outputDir = path.join("uploads", "layout_tmp", path.basename(filePath));
+        fs.mkdirSync(outputDir, { recursive: true });
+
+        // call Python script extract_layout.py
+        const pyScript = "python";
+        const scriptPath = "extract_layout.py";
+        const args = [scriptPath, filePath, outputDir];
+
+        log("Chiamata a extract_layout.py");
+        const pyResult = await new Promise((resolve, reject) => {
+            execFile(pyScript, args, { maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
+                if (err) {
+                    console.error("Python error:", err, stderr);
+                    return reject(err);
+                }
+                try {
+                    const jsonOut = JSON.parse(stdout);
+                    resolve(jsonOut);
+                } catch (parseErr) {
+                    console.error("Errore parsing Python output", parseErr, stdout);
+                    reject(parseErr);
+                }
+            });
+        });
+
+        log("Estratti blocchi dal PDF");
+
+
+        const imagesDir = pyResult.images_dir;
+        let images = [];
+        if (fs.existsSync(imagesDir)) {
+            images = fs.readdirSync(imagesDir).map(fname => ({
+                filename: fname,
+                path: path.join(imagesDir, fname),
+                base64: fs.readFileSync(path.join(imagesDir, fname)).toString("base64")
+            }));
+        }
+
+        //Body per Gemini con JSON e pdf inline
+        const fileBuffer = fs.readFileSync(filePath);
+        const base64File = fileBuffer.toString("base64");
+
+        const requestBody = {
+            contents: [
+                {
+                    role: "user",
+                    parts: [
+                        { text: prompt },
+                        { text: "METADATA_LAYOUT_JSON:\n" + JSON.stringify(pyResult) },
+                    ]
+                }
+            ]
+        };
+
+        log("Invio a Gemini");
+        const response = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody)
+            }
+        );
+
+        if (!response.ok) {
+            const errTxt = await response.text();
+            console.error("Errore Gemini:", errTxt);
+            throw new Error(`Errore API Gemini: ${response.status} - ${errTxt}`);
+        }
+
+        const data = await response.json();
+        log("Risposta Gemini ricevuta");
+
+        const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        // restituire tutto per confronto: html, layout JSON e immagini (base64)
+        const finalHtml = replacePlaceholders2(htmlContent, pyResult);
+        res.json({ html: finalHtml, layout: pyResult, images });
+
+    } catch (err) {
+        console.error("Errore backend layout-aware:", err);
+        if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        res.status(500).json({ error: err.message });
+    } finally {
+        // pulizia più conservativa: manteniamo le cartelle per analisi ma possiamo anche pianificare la pulizia
+        log("Fine richiesta layout-aware");
     }
 });
 

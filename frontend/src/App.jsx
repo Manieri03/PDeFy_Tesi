@@ -5,6 +5,7 @@ import { File, Send, FileText,Download,FileCode, Loader } from "lucide-react";
 import logo from "./assets/PDefyIcon.png";
 import WysiwygEditor from "./WysiwygEditor";
 import { HTML_PROMPT } from "../../backend/html_prompt.js";
+import {HTML_PROMPT2} from "../../backend/html_prompt2.js";
 
 
 
@@ -182,7 +183,7 @@ function App() {
         document.body.removeChild(element);
     };
 
-    //Prompt predefinito completo per Html (perfezionabile)
+    //Prompt predefinito completo per Html
     const handleHtmlPreset = () => {
         setPrompt(HTML_PROMPT);
     };

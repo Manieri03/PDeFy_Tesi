@@ -1,5 +1,5 @@
 
-export const HTML_PROMPT =`Converti il contenuto del PDF fornito in un HTML completo, ben strutturato e semantico. 
+export const HTML_PROMPT =`Converti il contenuto del PDF fornito in un HTML completo e fedele alla struttura dell'input.
         - Usa tag corretti per titoli (<h1>-<h6>), paragrafi (<p>), liste (<ul>/<ol>), tabelle (<table>), immagini (<img>).
         - Mantieni la gerarchia dei titoli e dei paragrafi come nel PDF.
         - Inserisci classi CSS significative per ogni sezione o elemento

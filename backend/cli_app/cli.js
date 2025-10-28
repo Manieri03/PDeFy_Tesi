@@ -60,7 +60,7 @@ async function processPdf(pdfPath, prompt) {
     const data = await res.json();
     const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    const images = await extractImages(pdfPath, "tmp_images");
+    const images = await extractImages(pdfPath, "uploads/tmp_images");
     const htmlWithImages = replacePlaceholders(htmlContent, images);
 
     const outputFile = path.basename(pdfPath, ".pdf") + "_output.html";
