@@ -18,4 +18,5 @@ export const HTML_PROMPT =`Converti il contenuto del PDF fornito in un HTML comp
         - Non aggiungere altri tag <img>, <image>, <figure> o immagini di esempio.
         - Non generare descrizioni, alt testuali inventati o immagini illustrative: il backend sostituirà i placeholder con le vere immagini estratte.
         - Quando individui un esercizio dove ci si aspetta che si riempia con parole o lettere, in quei punti metti visivamente dei trattini per capire che bisogna scriverci e marca le sezioni con uno span specifico.
+        - Dove vedi due colonne, lasciale e mantieni il layout coerente, presta particolare attenzione alla disposizione del pdf.
 `;
