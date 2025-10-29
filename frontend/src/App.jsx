@@ -22,6 +22,7 @@ function App() {
     const responseRef = useRef(null);
     const [editedHtml, setEditedHtml] = useState("");
     const [extractedStyle, setExtractedStyle] = useState("");
+    const [wysiwygStyle, setWysiwygStyle] = useState("");
 
 
 
@@ -67,10 +68,12 @@ function App() {
                 const styleMatch = text.match(/<style[\s\S]*?<\/style>/);
                 const styleContent = styleMatch ? styleMatch[0] : "";
                 const htmlContent = text.replace(/<style[\s\S]*?<\/style>/, "");
+                const pureCss = styleContent.replace(/<\/?style>/g, "");
 
                 setExtractedStyle(styleContent);
                 setEditedHtml(htmlContent);
                 setResponse(htmlContent);
+                setWysiwygStyle(pureCss)
 
                 downloadHTML();
 
@@ -240,7 +243,7 @@ function App() {
                         <FileText size={20} className="icon_response" /> Output:
                     </h2>
 
-                    <WysiwygEditor classname="editor_tiny" initialHtml={response} onChange={setEditedHtml} editedHtml={editedHtml} style={extractedStyle} />
+                    <WysiwygEditor classname="editor_tiny" initialHtml={response} onChange={setEditedHtml} editedHtml={editedHtml} style={wysiwygStyle} />
 
                     <button
                         className="btn_submit"

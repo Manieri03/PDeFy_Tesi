@@ -200,7 +200,6 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
                     role: "user",
                     parts: [
                         //parti della richiesta, prompt + pdf inline
-                        { text: prompt },
                         {
                             text: "Metadata immagini estratte:\n" + JSON.stringify(images)
                         },
@@ -210,6 +209,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
                                 mimeType: "application/pdf",
                             },
                         },
+                        { text: prompt }
                     ],
                 },
             ],
