@@ -1,13 +1,10 @@
-# extract_layout.py
 import sys
 import os
 import json
-import numpy as np
-from pdf2image import convert_from_path
-import layoutparser as lp
-from PIL import Image
-import pytesseract
+import pdfplumber
+import fitz  # PyMuPDF
 
+# === Config ===
 pdf_path = sys.argv[1]
 output_dir = sys.argv[2]
 
@@ -15,78 +12,72 @@ os.makedirs(output_dir, exist_ok=True)
 images_dir = os.path.join(output_dir, "images")
 os.makedirs(images_dir, exist_ok=True)
 
-# Converti PDF in immagini (una per pagina)
-pages_images = convert_from_path(pdf_path, dpi=150)
-all_pages_data = []
-image_index = 1
+layout = {"pages": []}
+img_counter = 1
+pdf_text = pdfplumber.open(pdf_path)
+pdf_img = fitz.open(pdf_path)
 
-# Carica modello LayoutParser
-model = lp.PaddleDetectionLayoutModel(
-    "lp://HJDataset/faster_rcnn_R_50_FPN_1x/config",  # esempio modello leggero
-    threshold=0.5,
-    device='cpu'
-)
+for page_idx in range(len(pdf_text.pages)):
+    blocks = []
+    page_plumber = pdf_text.pages[page_idx]
+    page_fitz = pdf_img[page_idx]
 
-for page_idx, page_image in enumerate(pages_images, start=1):
-    img_array = np.array(page_image)
-
-    # Rilevamento layout
-    layout = model.detect(img_array)
-
-    page_blocks = []
-
-    for b in layout:
-        x0, y0, x1, y1 = b.coordinates
-        block_type = b.type
-
-        if block_type in ["Text", "Title", "List"]:
-            # OCR solo sul blocco testuale
-            cropped = page_image.crop((x0, y0, x1, y1))
-            text = pytesseract.image_to_string(cropped, lang="ita").strip().replace("\n", " ")
-            if text:
-                page_blocks.append({
+    page_text = page_plumber.extract_text()
+    if page_text:
+        for line in page_text.split("\n"):
+            line = line.strip()
+            if line:
+                block_type = "paragraph"
+                if len(line) <= 100 and line.isupper():
+                    block_type = "title"
+                blocks.append({
                     "type": "text",
-                    "text": text,
-                    "page": page_idx,
-                    "bbox": [x0, y0, x1, y1],
-                    "x": x0,
-                    "y": y0,
-                    "width": x1 - x0,
-                    "height": y1 - y0,
-                    "font": None,
-                    "size": None,
+                    "text": line,
+                    "order": len(blocks)+1
                 })
-        elif block_type in ["Figure", "Table"]:
-            # Salva immagine del blocco
-            cropped = page_image.crop((x0, y0, x1, y1))
-            img_filename = f"page{page_idx}_img{image_index}.png"
-            img_path = os.path.join(images_dir, img_filename)
-            cropped.save(img_path)
-            page_blocks.append({
+
+    image_list = page_fitz.get_images(full=True)
+    for img_index, img in enumerate(image_list, start=1):
+        xref = img[0]
+        base_image = pdf_img.extract_image(xref)
+        image_bytes = base_image["image"]
+        ext = base_image["ext"]
+        img_filename = f"page{page_idx+1}_img{img_counter}.{ext}"
+        img_path = os.path.join(images_dir, img_filename)
+
+        with open(img_path, "wb") as f:
+            f.write(image_bytes)
+
+        rects = []
+        for inst in page_fitz.get_image_info(xrefs=True):
+            if inst["xref"] == xref:
+                rects.append(inst["bbox"])
+
+        for rect in rects:
+            x0, y0, x1, y1 = rect
+            blocks.append({
                 "type": "image",
-                "page": page_idx,
-                "bbox": [x0, y0, x1, y1],
+                "placeholder": f"[IMAGE_{img_counter}]",
+                "path": img_path,
+                "page": page_idx+1,
                 "x": x0,
                 "y": y0,
                 "width": x1 - x0,
                 "height": y1 - y0,
-                "path": img_path,
-                "ext": "png",
-                "index": image_index
+                "order": len(blocks)+1
             })
-            image_index += 1
+            img_counter += 1
 
-    all_pages_data.append({
-        "page_number": page_idx,
-        "width": img_array.shape[1],
-        "height": img_array.shape[0],
-        "blocks": page_blocks
+    layout["pages"].append({
+        "page_number": page_idx+1,
+        "blocks": blocks
     })
 
-# Salva JSON
+pdf_text.close()
+pdf_img.close()
+
 output_json = os.path.join(output_dir, "layout.json")
 with open(output_json, "w", encoding="utf-8") as f:
-    json.dump({"pages": all_pages_data, "images_dir": images_dir}, f, ensure_ascii=False, indent=2)
+    json.dump(layout, f, ensure_ascii=False, indent=2)
 
-# Output per Node.js
-print(json.dumps({"pages": all_pages_data, "images_dir": images_dir}))
+print(json.dumps(layout, ensure_ascii=False, indent=2))

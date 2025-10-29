@@ -173,31 +173,25 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
                 return a.x - b.x;
             });
 
-// placeholder stabile
         images.forEach((img, index) => {
             img.placeholder = `[IMAGE_${index + 1}]`;
         });
 
-// se vuoi trattare anche blocchi di testo, puoi creare un array "allBlocks"
         const allBlocks = [
             ...images.map(img => ({ type: "image", ...img })),
-            // se avessi già dei blocchi testo estratti, li inserisci qui
         ];
 
-// trim e normalizzazione testo
         allBlocks.forEach(block => {
             if(block.type === "text" && block.text) {
                 block.text = block.text.replace(/\s+/g, " ").trim();
             }
         });
 
-// ordinamento deterministico di tutti i blocchi
         allBlocks.sort((a, b) => {
             if (a.page !== b.page) return a.page - b.page;
             if (a.y !== b.y) return a.y - b.y;
             return a.x - b.x;
         });
-
 
         //costruzione del corpo della richiesta: prompt + pdf inline
         const requestBody = {
@@ -270,14 +264,12 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
 });
 
 
-
-
-
-
+/*
 
 app.post("/api/generate-layout", upload.single("file"), async (req, res) => {
     const log = makeTimer("Gemini Layout");
     let filePath = null;
+
     try {
         log("Inizio request layout-aware");
         const { prompt } = req.body;
@@ -289,38 +281,77 @@ app.post("/api/generate-layout", upload.single("file"), async (req, res) => {
         fs.mkdirSync(outputDir, { recursive: true });
 
         const pyResult = await new Promise((resolve, reject) => {
-            execFile("python", ["extract_layout.py", filePath, outputDir], { maxBuffer: 1024*1024*50 }, (err, stdout, stderr) => {
-                if (err) return reject(err);
-                try { resolve(JSON.parse(stdout)); }
-                catch(parseErr) { reject(parseErr); }
-            });
+            execFile(
+                "python",
+                ["extract_layout.py", filePath, outputDir],
+                { maxBuffer: 1024 * 1024 * 50 },
+                (err, stdout, stderr) => {
+                    if (err) return reject(err);
+                    try { resolve(JSON.parse(stdout)); }
+                    catch(parseErr) { reject(parseErr); }
+                }
+            );
         });
 
-        // raccogli immagini in array
         let images = [];
         if(fs.existsSync(pyResult.images_dir)){
-            images = fs.readdirSync(pyResult.images_dir).map(fname => ({
-                filename: fname,
-                path: path.join(pyResult.images_dir, fname),
-                base64: fs.readFileSync(path.join(pyResult.images_dir, fname)).toString("base64")
-            }));
+            images = fs.readdirSync(pyResult.images_dir).map((fname, idx) => {
+                const fullPath = path.join(pyResult.images_dir, fname);
+                return {
+                    filename: fname,
+                    path: fullPath,
+                    base64: fs.readFileSync(fullPath).toString("base64"),
+                    placeholder: `[IMAGE_${idx+1}]`
+                };
+            });
         }
 
-        // invio a Gemini con prompt + layout JSON
-        const fileBuffer = fs.readFileSync(filePath);
-        const base64File = fileBuffer.toString("base64");
+        function layoutJsonToHtml(layout) {
+            let html = '<main>';
+            layout.pages.forEach((page, pageIdx) => {
+                html += `<section class="page" id="page-${pageIdx+1}">`;
+                page.blocks.forEach(block => {
+                    switch(block.type) {
+                        case 'title':
+                            html += `<h1>${block.text}</h1>`;
+                            break;
+                        case 'subtitle':
+                            html += `<h2>${block.text}</h2>`;
+                            break;
+                        case 'paragraph':
+                        case 'text':
+                            html += `<p>${block.text}</p>`;
+                            break;
+                        case 'image':
+                            // trova il placeholder corrispondente
+                            const img = images.find(i => path.basename(block.path) === path.basename(i.path));
+                            html += `<div class="image-wrapper">${img?.placeholder || ''}</div>`;
+                            break;
+                        default:
+                            html += `<p>${block.text || ''}</p>`;
+                    }
+                });
+                html += '</section>';
+            });
+            html += '</main>';
+            return html;
+        }
+
+        const htmlFlowable = layoutJsonToHtml(pyResult);
 
         const requestBody = {
             contents: [
                 { role: "user", parts: [
                         { text: prompt },
-                        { text: "METADATA_LAYOUT_JSON:\n" + JSON.stringify(pyResult) }
+                        { text: "METADATA_LAYOUT_JSON:\n" + JSON.stringify(pyResult) },
+                        { text: "HTML_FLOWABLE:\n" + htmlFlowable }
                     ]}
             ]
         };
 
+        log("Invio richiesta a Gemini...");
         const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
             { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestBody) }
         );
 
@@ -331,124 +362,36 @@ app.post("/api/generate-layout", upload.single("file"), async (req, res) => {
 
         const data = await response.json();
         const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const finalHtml = replacePlaceholders2(htmlContent, pyResult);
+
+        // === Sostituisci placeholder con immagini base64 ===
+        let finalHtml = htmlContent;
+        images.forEach(img => {
+            const imgTag = `<img src="data:image/png;base64,${img.base64}" style="max-width:100%;height:auto;" />`;
+            finalHtml = finalHtml.replaceAll(img.placeholder, imgTag);
+        });
 
         res.json({ html: finalHtml, layout: pyResult, images });
+
     } catch(err) {
         console.error(err);
         res.status(500).json({ error: err.message });
-    }
-});
-
-
-
-
-
-
-
-
-/*
-//pipeline alternativa
-app.post("/api/generate-layout", upload.single("file"), async (req, res) => {
-    const log = makeTimer("Gemini Layout");
-    let filePath = null;
-    try {
-        log("Inizio request");
-        const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ error: "Prompt mancante" });
-        if (!req.file) return res.status(400).json({ error: "Nessun file PDF caricato" });
-        filePath = req.file.path;
-
-        // directory output separata per questa pipeline
-        const outputDir = path.join("uploads", "layout_tmp", path.basename(filePath));
-        fs.mkdirSync(outputDir, { recursive: true });
-
-        // call Python script extract_layout.py
-        const pyScript = "python";
-        const scriptPath = "extract_layout.py";
-        const args = [scriptPath, filePath, outputDir];
-
-        log("Chiamata a extract_layout.py");
-        const pyResult = await new Promise((resolve, reject) => {
-            execFile(pyScript, args, { maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
-                if (err) {
-                    console.error("Python error:", err, stderr);
-                    return reject(err);
-                }
-                try {
-                    const jsonOut = JSON.parse(stdout);
-                    resolve(jsonOut);
-                } catch (parseErr) {
-                    console.error("Errore parsing Python output", parseErr, stdout);
-                    reject(parseErr);
-                }
-            });
-        });
-
-        log("Estratti blocchi dal PDF");
-
-
-        const imagesDir = pyResult.images_dir;
-        let images = [];
-        if (fs.existsSync(imagesDir)) {
-            images = fs.readdirSync(imagesDir).map(fname => ({
-                filename: fname,
-                path: path.join(imagesDir, fname),
-                base64: fs.readFileSync(path.join(imagesDir, fname)).toString("base64")
-            }));
-        }
-
-        //Body per Gemini con JSON e pdf inline
-        const fileBuffer = fs.readFileSync(filePath);
-        const base64File = fileBuffer.toString("base64");
-
-        const requestBody = {
-            contents: [
-                {
-                    role: "user",
-                    parts: [
-                        { text: prompt },
-                        { text: "METADATA_LAYOUT_JSON:\n" + JSON.stringify(pyResult) },
-                    ]
-                }
-            ]
-        };
-
-        log("Invio a Gemini");
-        const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestBody)
-            }
-        );
-
-        if (!response.ok) {
-            const errTxt = await response.text();
-            console.error("Errore Gemini:", errTxt);
-            throw new Error(`Errore API Gemini: ${response.status} - ${errTxt}`);
-        }
-
-        const data = await response.json();
-        log("Risposta Gemini ricevuta");
-
-        const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        // restituire tutto per confronto: html, layout JSON e immagini (base64)
-        const finalHtml = replacePlaceholders2(htmlContent, pyResult);
-        res.json({ html: finalHtml, layout: pyResult, images });
-
-    } catch (err) {
-        console.error("Errore backend layout-aware:", err);
-        if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        res.status(500).json({ error: err.message });
     } finally {
-        // pulizia più conservativa: manteniamo le cartelle per analisi ma possiamo anche pianificare la pulizia
-        log("Fine richiesta layout-aware");
+        setTimeout(() => {
+            try {
+                clearDirectory("uploads/pdf");
+                clearDirectory("uploads/tmp_images");
+                console.log("Cartelle temporanee pulite");
+            } catch (cleanupErr) {
+                console.error("Errore nella pulizia:", cleanupErr);
+            }
+        }, 2000);
     }
 });
 
  */
+
+
+
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Backend avviato su http://localhost:${PORT}`));

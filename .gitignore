@@ -5,3 +5,4 @@ build/
 .DS_Store
 uploads/
 tmp_images/
+venv/

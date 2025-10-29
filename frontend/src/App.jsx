@@ -5,8 +5,6 @@ import { File, Send, FileText,Download,FileCode, Loader } from "lucide-react";
 import logo from "./assets/PDefyIcon.png";
 import WysiwygEditor from "./WysiwygEditor";
 import { HTML_PROMPT } from "../../backend/html_prompt.js";
-import {HTML_PROMPT2} from "../../backend/html_prompt2.js";
-
 
 
 function App() {
@@ -51,7 +49,7 @@ function App() {
                 formData.append("prompt", prompt);
                 formData.append("file", f);
 
-                const res = await fetch("/api/generate-layout", {
+                const res = await fetch("/api/generate", {
                     method: "POST",
                     body: formData,
                 });
@@ -70,7 +68,6 @@ function App() {
                 const styleContent = styleMatch ? styleMatch[0] : "";
                 const htmlContent = text.replace(/<style[\s\S]*?<\/style>/, "");
 
-                // Aggiorno gli stati per il download e la visualizzazione finale
                 setExtractedStyle(styleContent);
                 setEditedHtml(htmlContent);
                 setResponse(htmlContent);
@@ -87,9 +84,8 @@ function App() {
             console.error("Errore nel batch:", err);
             setError(err.message);
         } finally {
-            // Disattiva il loading alla fine del batch (successo o fallimento)
             setLoading(false);
-            setCurrentFile(null); // Pulisci il nome del file corrente
+            setCurrentFile(null);
         }
     };
 
@@ -118,7 +114,7 @@ function App() {
             formData.append("file", file);
 
             //invio al backend
-            const res = await fetch("/api/generate-layout", {
+            const res = await fetch("/api/generate", {
                 method: "POST",
                 body: formData,
             });
