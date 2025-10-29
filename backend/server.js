@@ -48,60 +48,6 @@ function replacePlaceholders(html, extractedImages) {
     return html;
 }
 
-function replacePlaceholders2(html, layout) {
-    if (!layout || !Array.isArray(layout.pages)) return html;
-
-    let out = "";
-
-    layout.pages.forEach((page) => {
-        if (!page.blocks || !Array.isArray(page.blocks)) return;
-
-        const wrapperWidth = Math.round(page.width);
-        const wrapperHeight = Math.round(page.height);
-
-        let pageContent = "";
-
-        page.blocks.forEach(block => {
-            const leftPx = Math.round(block.x * page.width);
-            const topPx = Math.round(block.y * page.height);
-            const widthPx = Math.round(block.width * page.width);
-            const heightPx = Math.round(block.height * page.height);
-
-            if(block.type === "text") {
-                let tag = "p";
-                if(block.role === "title") tag = "h1";
-                pageContent += `<${tag} class="text-block" style="
-            position:absolute;
-            left:${leftPx}px;
-            top:${topPx}px;
-            width:${widthPx}px;
-            font-size:${block.font_size}px;
-        ">${block.text}</${tag}>`;
-            }
-
-            if(block.type === "image") {
-                const absPath = path.join(layout.images_dir, path.basename(block.path));
-                if(!fs.existsSync(absPath)) return;
-                const base64 = fs.readFileSync(absPath).toString("base64");
-                pageContent += `<div class="image-wrapper" style="
-            position:absolute;
-            left:${leftPx}px;
-            top:${topPx}px;
-            width:${widthPx}px;
-            height:${heightPx}px;
-        "><img src="data:image/${block.ext};base64,${base64}" style="width:100%;height:100%;object-fit:contain;"></div>`;
-            }
-        });
-
-        out += `<div class="page-wrapper" style="position:relative; width:${wrapperWidth}px; height:${wrapperHeight}px;">${pageContent}</div>`;
-    });
-
-    return out;
-}
-
-
-
-
 function generateMappingFromImages(extractedImages) {
     return extractedImages.map((img, index) => {
         return {
@@ -164,19 +110,6 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         const base64File = fileBuffer.toString("base64");
         let images = await extractImages(filePath);
 
-// ordina e normalizza immagini e blocchi testo
-        images = images
-            .map(img => ({ ...img, text: img.text?.replace(/\s+/g, " ").trim() || "" }))
-            .sort((a, b) => {
-                if (a.page !== b.page) return a.page - b.page;
-                if (a.y !== b.y) return a.y - b.y;
-                return a.x - b.x;
-            });
-
-        images.forEach((img, index) => {
-            img.placeholder = `[IMAGE_${index + 1}]`;
-        });
-
         //costruzione del corpo della richiesta: prompt + pdf inline
         const requestBody = {
             contents: [
@@ -220,8 +153,6 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         const data = await response.json();
         log("Risposta ricevuta");
         const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-        const mappingPart = data?.candidates?.[0]?.content?.parts?.[1]?.text;
         let mapping = [];
         mapping = generateMappingFromImages(images);
 
