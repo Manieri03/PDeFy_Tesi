@@ -177,22 +177,6 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
             img.placeholder = `[IMAGE_${index + 1}]`;
         });
 
-        const allBlocks = [
-            ...images.map(img => ({ type: "image", ...img })),
-        ];
-
-        allBlocks.forEach(block => {
-            if(block.type === "text" && block.text) {
-                block.text = block.text.replace(/\s+/g, " ").trim();
-            }
-        });
-
-        allBlocks.sort((a, b) => {
-            if (a.page !== b.page) return a.page - b.page;
-            if (a.y !== b.y) return a.y - b.y;
-            return a.x - b.x;
-        });
-
         //costruzione del corpo della richiesta: prompt + pdf inline
         const requestBody = {
             contents: [
