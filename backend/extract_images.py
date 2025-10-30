@@ -46,5 +46,7 @@ for page_index, page in enumerate(pdf, start=1):
 
 pdf.close()
 
+images.sort(key=lambda x: (x["page"], x["y"], x["x"]))
+
 
 print(json.dumps(images, ensure_ascii=False, indent=2))

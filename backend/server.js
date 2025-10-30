@@ -29,6 +29,7 @@ function extractImages(pdfPath, outputDir = "uploads/tmp_images") {
         });
     });
 }
+
 function replacePlaceholders(html, extractedImages) {
 
     // sostituisci i placeholder nell'ordine
