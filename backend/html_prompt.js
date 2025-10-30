@@ -1,16 +1,32 @@
 
-export const HTML_PROMPT =`Converti il contenuto del PDF fornito in un HTML completo e fedele alla struttura dell'input.
-        - Usa tag corretti per titoli (<h1>-<h6>), paragrafi (<p>), liste (<ul>/<ol>), tabelle (<table>).
-        - Mantieni la gerarchia dei titoli e dei paragrafi come nel PDF.
-        - Inserisci classi CSS significative per ogni sezione o elemento
-        - Non includere contenuti inutili, che non appartengono al pdf o duplicati.
-        - Rispondi solo con il codice HTML, senza spiegazioni o testo extra.
-        - inserisci anche una sezione <style></style> per la definizione dello stile, gradevole e coerente.
-        - non risolvere NESSUN esercizio.
-        - non inserire delimitatori markdown (\`\`\`html) e (\`\`\`) all'inizio e alla fine
-        - numera chiaramente gli esercizi in una section nel formato avente un id nel formato: "exercise-n", dove n è il numero dell'esercizio in questione
-        - dove trovi un'immagine, inserisci un tag placeholder nel formato [IMAGE_X], ben centrato in un contenitore dove andra poi l'immagine, dove X è l'indice progressivo dell'immagine nel PDF.
-        - Dove vedi due colonne, lasciale e mantieni il layout coerente, presta particolare attenzione alla disposizione del pdf.
-        - Racchiudi in <span class="blank"></span> ogni spazio o linea (____, —, ___) destinato a essere completato negli esercizi.
-        - Se lo spazio è composto da più trattini, conserva la lunghezza approssimativa nel numero di span o tramite CSS (es. width proporzionato).
-`;
+export const HTML_PROMPT =`Istruzioni e Formato di Output:
+
+Output Esclusivo: Rispondi solo con il codice HTML. Non includere spiegazioni, testo extra, delimitatori Markdown (come \`\`\`html) o introduzioni/conclusioni.
+
+Struttura e Semantica: Utilizza tag HTML semantici corretti:
+
+Titoli: <h1>, <h2>, <h3>, ecc., mantenendo la gerarchia originale.
+
+Paragrafi: <p>.
+
+Liste: <ul> o <ol> appropriate.
+
+Tabelle: <table>, <thead>, <tbody>, <tr>, <th>, <td>.
+
+Layout e Stile:
+
+Mantieni il layout a due colonne dove presente nel PDF, assicurando una disposizione coerente.
+
+Assegna classi CSS significative (class="nome-sezione") a sezioni e elementi per facilitare la stilizzazione.
+
+Includi una sezione <style></style> all'interno di <head> per definire uno stile gradevole, pulito e coerente (es. font, colori, spaziatura).
+
+Esercizi e Immagini:
+
+NON risolvere NESSUN esercizio. Riportali fedelmente.
+
+Ogni esercizio deve essere contenuto in una <section> con un id nel formato esatto: id="exercise-n", dove n è il numero progressivo dell'esercizio nel documento.
+
+Sostituisci ogni immagine con un placeholder centrato all'interno di un contenitore (es. <div>), usando il formato esatto: [IMAGE_X], dove X è l'indice progressivo dell'immagine nel PDF (es. la prima immagine è [IMAGE_1]).
+
+Contenuto: Inserisci solo il contenuto originale del PDF. Non aggiungere, omettere, o duplicare informazioni.`;

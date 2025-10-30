@@ -30,15 +30,9 @@ function extractImages(pdfPath, outputDir = "uploads/tmp_images") {
     });
 }
 function replacePlaceholders(html, extractedImages) {
-    // ordina le immagini per pagina, poi per y , poi per x
-    const sortedImages = [...extractedImages].sort((a, b) => {
-        if (a.page !== b.page) return a.page - b.page;
-        if (a.y !== b.y) return a.y - b.y;
-        return a.x - b.x;
-    });
 
     // sostituisci i placeholder nell'ordine
-    sortedImages.forEach((img, index) => {
+    extractedImages.forEach((img, index) => {
         const placeholder = `[IMAGE_${index + 1}]`;
         const base64 = fs.readFileSync(img.path).toString("base64");
         const imgTag = `<img src="data:image/${img.ext};base64,${base64}" style="width:${img.width}px;height:${img.height}px;" />`;
