@@ -22,7 +22,7 @@ Esercizi:
 Immagini:
 - NON includere immagini reali: sostituisci ogni immagine con un placeholder centrato del formato esatto: [IMAGE_X], dove X è l'indice progressivo dell'immagine nel PDF (la prima immagine è [IMAGE_1], ecc.).
 - Inserisci il placeholder [IMAGE_X] dentro un contenitore <div class="image-placeholder"> centrato.
-- Subito dopo ogni placeholder immagine, inserisci uno spazio di completamento visibile (vedi "Spazi di completamento" sotto) se l'esercizio o il titolo suggerisce completamento.
+- Fai il div della dimensione adeguata in modo da contenere tutta l'immagine e non coprire altre parti del layout.
 
 Rilevamento tipologia ed aggiunta di spazi di completamento:
 - Scansiona il titolo dell'esercizio e l'enunciato alla ricerca di parole/locuzioni che indicano attività di completamento o inserimento, ad esempio: "completa", "completare", "completa con", "riempi", "inserisci", "sostituisci", "scrivi", "scrivi qui".
