@@ -1,5 +1,5 @@
 export const HTML_PROMPT = `Istruzioni e Formato di Output:
-Output Esclusivo: Rispondi solo con il codice HTML. Non includere spiegazioni, testo extra, delimitatori Markdown (come \`\`\`html) o introduzioni/conclusioni.
+Output Esclusivo: Rispondi solo con il codice HTML. Non includere spiegazioni, testo extra o introduzioni/conclusioni.
 
 Struttura e Semantica:
 - Utilizza tag HTML semantici corretti: titoli <h1>, <h2>, <h3>, ecc.; paragrafi <p>; liste <ul>/<ol>; tabelle <table>/<thead>/<tbody>/<tr>/<th>/<td>.
@@ -24,6 +24,23 @@ Immagini:
 - Inserisci il placeholder [IMAGE_X] dentro un contenitore <div class="image-placeholder"> centrato.
 - Fai il div della dimensione adeguata in modo da contenere tutta l'immagine e non coprire altre parti del layout.
 
+Riconoscimento della tipologia di esercizio:
+- Identifica automaticamente la tipologia dell'esercizio basandoti su parole chiave presenti nel titolo o nell'enunciato.
+- Aggiungi alla sezione dell'esercizio un attributo className che includa la categoria riconosciuta.
+  Esempio: <section id="exercise-1" class="exercise exercise-completamento">.
+- Le categorie principali da riconoscere sono:
+  - "completamento" - se compaiono termini come "completa", "riempi", "inserisci", "scrivi", "determina".
+  - "scelta-multipla" - se compaiono termini come "scegli", "seleziona", "indica la risposta corretta", "cerchia".
+  - "collegamento" - se compaiono termini come "abbina", "collega", "unisci", "metti in relazione".
+  - "vero-falso" - se compaiono termini come "vero o falso", "V/F", "se è vero segna".
+  - "ordinamento" - se compaiono termini come "metti in ordine", "ordina", "riordina".
+  - "domanda-aperta" - se compaiono parole come "spiega", "descrivi", "rispondi", "argomenta".
+  - "individuazione" - se compaiono parole come "individua", "sottolinea".
+  - "scrittura" - se compaiono parole come "scrivi", "scrivere".
+  - "calcolo" - se compaiono parole come "calcolo", "addizione", "sottrazione", "moltiplicazione", "divisione".
+  
+  Se nessuna categoria è riconosciuta, assegna class="exercise exercise-generico".
+
 Rilevamento tipologia ed aggiunta di spazi di completamento:
 - Scansiona il titolo dell'esercizio e l'enunciato alla ricerca di parole/locuzioni che indicano attività di completamento o inserimento, ad esempio: "completa", "completare", "completa con", "riempi", "inserisci", "sostituisci", "scrivi", "scrivi qui".
 - Se qualsiasi di queste parole appare nel titolo o nelle prime righe dell'enunciato dell'esercizio, devi:
@@ -35,5 +52,7 @@ Rilevamento tipologia ed aggiunta di spazi di completamento:
 Liste, Tabelle, Esercizi a più parti:
 - Se un esercizio è composto da più sottopunti (a), (b), (c) e il titolo richiede completamento, aggiungi dopo ogni sottopunto che rappresenta un elemento da completare un <input type="text" class="image-input"/>.
 
+- Non usare blocchi di codice (\`\`\`o \`\`\`html), tag fittizi o caratteri di escape.
+- Il testo deve iniziare direttamente con "<!DOCTYPE html>" e terminare con "</html>".
 
 Fine delle istruzioni. Genera il file HTML seguendo esattamente queste regole.`;
