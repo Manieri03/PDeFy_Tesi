@@ -29,7 +29,7 @@ Riconoscimento della tipologia di esercizio:
 - Aggiungi alla sezione dell'esercizio un attributo className che includa la categoria riconosciuta.
   Esempio: <section id="exercise-1" class="exercise exercise-completamento">.
 - Le categorie principali da riconoscere sono:
-  - "completamento" - se compaiono termini come "completa", "riempi", "inserisci", "scrivi", "determina".
+  - "completamento" - se compaiono termini come "completa", "riempi", "inserisci", "scrivi", "determina","sostituisci".
   - "scelta-multipla" - se compaiono termini come "scegli", "seleziona", "indica la risposta corretta", "cerchia".
   - "collegamento" - se compaiono termini come "abbina", "collega", "unisci", "metti in relazione".
   - "vero-falso" - se compaiono termini come "vero o falso", "V/F", "se è vero segna".
@@ -41,9 +41,7 @@ Riconoscimento della tipologia di esercizio:
   
   Se nessuna categoria è riconosciuta, assegna class="exercise exercise-generico".
 
-Rilevamento tipologia ed aggiunta di spazi di completamento:
-- Scansiona il titolo dell'esercizio e l'enunciato alla ricerca di parole/locuzioni che indicano attività di completamento o inserimento, ad esempio: "completa", "completare", "completa con", "riempi", "inserisci", "sostituisci", "scrivi", "scrivi qui".
-- Se qualsiasi di queste parole appare nel titolo o nelle prime righe dell'enunciato dell'esercizio, devi:
+Nel caso di un esercizio identificato come di "completamento" o di "scrittura" o di "domanda-aperta"
   1. Per ogni immagine ([IMAGE_X]) presente all'interno della stessa sezione esercizio, inserire subito dopo il placeholder dell'immagine un campo di completamento specifico :<input type="text" class="image-input"/>.
   2. Se c'è uno spazio per il completamento anche senza immagine inserisci sempre: <input type="text" class="image-input"/>.
   3. Se l'enunciato richiede più spazi (es. "completa le seguenti parole:" e poi lista di immagini o frasi), crea tanti<input type="text" class="image-input"/> quanti necessari, cercando di rispettare l'ordine del contenuto originale. Non inventare elementi: crea spazi pari al numero di item elencati.
@@ -52,7 +50,5 @@ Rilevamento tipologia ed aggiunta di spazi di completamento:
 Liste, Tabelle, Esercizi a più parti:
 - Se un esercizio è composto da più sottopunti (a), (b), (c) e il titolo richiede completamento, aggiungi dopo ogni sottopunto che rappresenta un elemento da completare un <input type="text" class="image-input"/>.
 
-- Non usare blocchi di codice (\`\`\`o \`\`\`html), tag fittizi o caratteri di escape.
-- Il testo deve iniziare direttamente con "<!DOCTYPE html>" e terminare con "</html>".
-
+Non inserire dei paragrafi all'inizio e alla fine con \`\`\`html e \`\`\`.
 Fine delle istruzioni. Genera il file HTML seguendo esattamente queste regole.`;
