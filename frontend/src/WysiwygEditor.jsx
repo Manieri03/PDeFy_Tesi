@@ -4,7 +4,7 @@ import "./WysiwygEditor.css";
 
 export default function WysiwygEditor({ initialHtml, onChange, style }) {
     const editorRef = useRef(null);
-    const apiKey = "r3755alfoihxdlyldqrjs3xexxp8neyyrifqy34da4hxwjef";
+    const apiKey = import.meta.env.VITE_TINYMCE_API_KEY;
 
     useEffect(() => {
         if (editorRef.current && initialHtml) {
@@ -77,7 +77,6 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             e.stopImmediatePropagation();
         });
 
-        // --- Drag end ---
         doc.addEventListener("dragend", () => {
             if (draggedBlock) draggedBlock.style.opacity = "";
             draggedBlock = null;
@@ -90,14 +89,12 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             input.addEventListener("dragstart", (e) => e.stopPropagation());
         });
 
-        // --- Drag over ---
         doc.addEventListener("dragover", (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = "move";
             if (!target || target === draggedBlock || target.contains(draggedBlock)) return;
         });
 
-        // --- Drop preciso ---
         doc.addEventListener("drop", (e) => {
             e.preventDefault();
             if (!draggedBlock) return;
@@ -119,7 +116,6 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
                     dropTarget.parentNode.insertBefore(draggedBlock, dropTarget.nextSibling);
                 }
             } else {
-                // --- Logica normale di drop tra paragrafi, input ecc ---
                 let range;
                 if (doc.caretRangeFromPoint) {
                     range = doc.caretRangeFromPoint(e.clientX, e.clientY);
@@ -129,7 +125,6 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
                 }
 
                 if (!range) {
-                    // fallback: metti in fondo solo se non trovi un punto valido
                     doc.body.appendChild(draggedBlock);
                 } else {
                     range.insertNode(draggedBlock);

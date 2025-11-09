@@ -23,6 +23,26 @@ Immagini:
 - NON includere immagini reali: sostituisci ogni immagine con un placeholder centrato del formato esatto: [IMAGE_X], dove X è l'indice progressivo dell'immagine nel PDF (la prima immagine è [IMAGE_1], ecc.).
 - Inserisci il placeholder [IMAGE_X] dentro un contenitore <div class="image-placeholder"> centrato.
 - Fai il div della dimensione adeguata in modo da contenere tutta l'immagine e non coprire altre parti del layout.
+Metadati delle immagini:
+Ti fornirò una lista di immagini estratte dal PDF in formato JSON, ciascuna con:
+- page: numero della pagina
+- x, y: coordinate del punto superiore sinistro dell'immagine nel PDF
+- width, height: dimensioni effettive dell'immagine
+- index: posizione progressiva nel documento
+
+Uso dei metadati:
+1. Le immagini devono essere inserite nell’HTML come placeholder [IMAGE_X] nello stesso punto logico dedotto dal layout originale.
+2. Usa page, x e y per capire l'ordine verticale degli elementi:
+   - Se un'immagine ha y più basso, si trova più in basso nella pagina.
+   - Ordina il contenuto PDF rispettando questa verticalità.
+3. Usa x per capire se l'immagine era nella colonna sinistra o destra:
+   - x < 50% della larghezza pagina => colonna sinistra.
+   - x > 50% della larghezza pagina => colonna destra.
+4. Il placeholder deve rappresentare l’immagine nelle dimensioni proporzionali all’originale:
+   - Crea il <div class="image-placeholder"> con width e height proporzionali ai metadati.
+5. Quando un'immagine è vicina (in termini di y) a una parte di testo dell’esercizio, inserisci il placeholder in corrispondenza esatta nell’HTML.
+6. Le immagini vengono fornite in ordine, ma usa le coordinate per posizionarle nel punto giusto della ricostruzione HTML.
+
 
 Riconoscimento della tipologia di esercizio:
 - Identifica automaticamente la tipologia dell'esercizio basandoti su parole chiave presenti nel titolo o nell'enunciato.
@@ -38,8 +58,13 @@ Riconoscimento della tipologia di esercizio:
   - "individuazione" - se compaiono parole come "individua", "sottolinea".
   - "scrittura" - se compaiono parole come "scrivi", "scrivere".
   - "calcolo" - se compaiono parole come "calcolo", "addizione", "sottrazione", "moltiplicazione", "divisione".
+  - "disegno" - se compaiono parole come "disegno", "rappresentazione", "costruisci", "modella", "crea".
+    Se nessuna categoria è riconosciuta, assegna class="exercise exercise-generico".
   
-  Se nessuna categoria è riconosciuta, assegna class="exercise exercise-generico".
+In ogni caso, concentrati anche sull'identificazione delle singole opzioni o sottosezioni degli esercizi.
+Identificale e marcale con una classe univoca che faccia riferimento all'esercizio e al fatto che sia un'opzione o una sottosezione di esso
+
+Separa con un a capo ogni esercizio in modo da rendere l'html piu leggibile
 
 Nel caso di un esercizio identificato come di "completamento" o di "scrittura" o di "domanda-aperta"
   1. Per ogni immagine ([IMAGE_X]) presente all'interno della stessa sezione esercizio, inserire subito dopo il placeholder dell'immagine un campo di completamento specifico :<input type="text" class="image-input"/>.
