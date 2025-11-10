@@ -5,6 +5,7 @@ import { File, Send, FileText,Download,FileCode, Loader } from "lucide-react";
 import logo from "./assets/PDefyIcon.png";
 import WysiwygEditor from "./WysiwygEditor";
 import { HTML_PROMPT } from "../../backend/html_prompt.js";
+import {HTML_PROMPT2} from "../../backend/html_prompt_2.js";
 
 
 function App() {
@@ -24,7 +25,7 @@ function App() {
     const [extractedStyle, setExtractedStyle] = useState("");
     const [wysiwygStyle, setWysiwygStyle] = useState("");
 
-
+    const [mode, setMode] = useState("html");
 
     const processQueue = async (e) => {
         e.preventDefault();
@@ -50,7 +51,11 @@ function App() {
                 formData.append("prompt", prompt);
                 formData.append("file", f);
 
-                const res = await fetch("/api/generate", {
+                const endpoint = mode === "html"
+                    ? "/api/generate"
+                    : "/api/structured-generate";
+
+                const res = await fetch(endpoint, {
                     method: "POST",
                     body: formData,
                 });
@@ -117,7 +122,11 @@ function App() {
             formData.append("file", file);
 
             //invio al backend
-            const res = await fetch("/api/generate", {
+            const endpoint = mode === "html"
+                ? "/api/generate"
+                : "/api/structured-generate";
+
+            const res = await fetch(endpoint, {
                 method: "POST",
                 body: formData,
             });
@@ -184,7 +193,11 @@ function App() {
 
     //Prompt predefinito completo per Html
     const handleHtmlPreset = () => {
-        setPrompt(HTML_PROMPT);
+        if (mode === "html") {
+            setPrompt(HTML_PROMPT);
+        } else {
+            setPrompt(HTML_PROMPT2);
+        }
     };
 
     return (
@@ -196,6 +209,28 @@ function App() {
             <div className="predefined_prmpt_div">
                 <button className="btn_submit" onClick={handleHtmlPreset}>HTML <FileCode size={20}></FileCode></button>
             </div>
+            <div className="mode-switch">
+                <label>
+                    <input
+                        type="radio"
+                        value="html"
+                        checked={mode === "html"}
+                        onChange={() => setMode("html")}
+                    />
+                    HTML Standard
+                </label>
+
+                <label>
+                    <input
+                        type="radio"
+                        value="structured"
+                        checked={mode === "structured"}
+                        onChange={() => setMode("structured")}
+                    />
+                    Structured
+                </label>
+            </div>
+
             <form className="form_input" onSubmit={(e) => processQueue(e)}>
                 <textarea
                     value={prompt}

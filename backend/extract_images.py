@@ -1,6 +1,6 @@
 import sys, json, os
 import fitz  # PyMuPDF
-from PIL import Image, ImageOps, ImageStat
+from PIL import Image
 import io
 
 pdf_path = sys.argv[1]
@@ -11,13 +11,6 @@ if not os.path.exists(output_dir):
 
 pdf = fitz.open(pdf_path)
 images = []
-
-def is_dark_grayscale(img, mean_thresh=120, var_thresh=500):
-    grayscale = img.convert("L")
-    stat = ImageStat.Stat(grayscale)
-    mean = stat.mean[0]
-    var = stat.var[0]
-    return mean < mean_thresh and var < var_thresh
 
 for page_index, page in enumerate(pdf, start=1):
     image_list = page.get_images(full=True)
@@ -30,20 +23,8 @@ for page_index, page in enumerate(pdf, start=1):
 
         img = Image.open(io.BytesIO(image_bytes))
 
-        # conversioni colore
         if img.mode == "CMYK":
             img = img.convert("RGB")
-
-        # inversione solo se necessario
-        if img.mode in ["L", "1"]:  # solo bianco/nero o grigio
-            if is_dark_grayscale(img):
-                img = ImageOps.invert(img.convert("L"))
-        elif img.mode == "RGB":
-            # per RGB controlla se è quasi monocromatico
-            grayscale = img.convert("L")
-            stat = ImageStat.Stat(grayscale)
-            if stat.var[0] < 300 and stat.mean[0] < 110:
-                img = ImageOps.invert(img)
 
         path = f"{output_dir}/page{page_index}_img{img_index}.png"
         img.save(path, "PNG")

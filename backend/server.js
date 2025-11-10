@@ -130,7 +130,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         log("Body costruito, invio a Gemini...");
 
         const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + API_KEY,
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -170,6 +170,133 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
                 console.error("Errore nella pulizia:", cleanupErr);
             }
         }, 2000);
+    }
+});
+
+
+function extractStructured(pdfPath, outputDir = "uploads/tmp_structured") {
+    return new Promise((resolve, reject) => {
+        execFile(
+            "python",
+            ["extract_structured.py", pdfPath, outputDir],
+            (err, stdout, stderr) => {
+                if (err) return reject(err);
+
+                try {
+                    const json = JSON.parse(stdout);
+                    resolve(json);
+                } catch (e) {
+                    reject(new Error("Errore nel parsing JSON: " + e.message));
+                }
+            }
+        );
+    });
+}
+
+function replaceStructuredImages(html, structuredJson) {
+    let imageIndex = 1;
+
+    // Estrae tutte le immagini da tutte le pagine in ordine
+    const allImages = structuredJson.pages.flatMap(page =>
+        page.images?.map(img => ({
+            index: imageIndex++,
+            path: img.path,
+            width: img.width,
+            height: img.height
+        })) || []
+    );
+
+    // Sostituzione identica al primo endpoint
+    allImages.forEach(img => {
+        const placeholder = `[IMAGE_${img.index}]`;
+
+        // Converte immagine in base64
+        const base64 = fs.readFileSync(img.path).toString("base64");
+
+        const tag = `<img src="data:image/png;base64,${base64}" style="width:${img.width}px;height:${img.height}px;">`;
+
+        html = html.replaceAll(placeholder, tag);
+    });
+
+    return html;
+}
+
+
+app.post("/api/structured-generate", upload.single("file"), async (req, res) => {
+    let filePath = null;
+
+    try {
+        const { prompt } = req.body;
+        if (!prompt) {
+            return res.status(400).json({ error: "Prompt mancante" });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ error: "Nessun file PDF caricato" });
+        }
+
+        filePath = req.file.path;
+        const outputDir = "uploads/tmp_structured";
+
+        const structuredJson = await extractStructured(filePath, outputDir);
+
+        const requestBody = {
+            contents: [
+                {
+                    role: "user",
+                    parts: [
+                        {
+                            text:
+                                "Struttura estratta del PDF:\n" +
+                                JSON.stringify(structuredJson)
+                        },
+                        {
+                            text:
+                                "\n\nIstruzioni:\n" +
+                                prompt
+                        }
+                    ]
+                }
+            ]
+        };
+
+        const response = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody),
+            }
+        );
+
+        if (!response.ok) {
+            const errTxt = await response.text();
+            throw new Error(`Errore API Gemini: ${response.status} - ${errTxt}`);
+        }
+
+        const data = await response.json();
+        const html = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+        const finalHtml = replaceStructuredImages(html, structuredJson);
+        res.json({ html: finalHtml, structured: structuredJson });
+
+    } catch (err) {
+        console.error("Errore /api/structured-generate:", err);
+        res.status(500).json({ error: err.message });
+
+    } finally {
+        if (filePath && fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+
+        setTimeout(() => {
+            try {
+                clearDirectory("uploads/tmp_structured");
+            } catch (_) {}
+        }, 2000);
+
+
     }
 });
 
