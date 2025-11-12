@@ -53,7 +53,7 @@ function App() {
 
                 const endpoint = mode === "html"
                     ? "/api/generate"
-                    : "/api/structured-generate";
+                    : "/api/generate_JSON";
 
                 const res = await fetch(endpoint, {
                     method: "POST",
@@ -124,7 +124,7 @@ function App() {
             //invio al backend
             const endpoint = mode === "html"
                 ? "/api/generate"
-                : "/api/structured-generate";
+                : "/api/generate_JSON";
 
             const res = await fetch(endpoint, {
                 method: "POST",
@@ -217,17 +217,17 @@ function App() {
                         checked={mode === "html"}
                         onChange={() => setMode("html")}
                     />
-                    HTML Standard
+                    PDF inline
                 </label>
 
                 <label>
                     <input
                         type="radio"
-                        value="structured"
-                        checked={mode === "structured"}
-                        onChange={() => setMode("structured")}
+                        value="JSON"
+                        checked={mode === "JSON"}
+                        onChange={() => setMode("JSON")}
                     />
-                    Structured
+                    Layout JSON
                 </label>
             </div>
 

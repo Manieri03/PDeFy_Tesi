@@ -99,14 +99,3 @@ async function processInBatches(files, batchSize) {
     await processInBatches(pdfFiles, MAX_CONCURRENT);
     console.log("\nTutti i PDF elaborati con successo.");
 })();
-
-/*
-* (async () => {
-    for (const pdfPath of pdfFiles) {
-        console.log(`Elaborazione: ${pdfPath}`);
-        try {
-            await processPdf(pdfPath, prompt);
-        } catch (err) {
-            console.error("Errore:", err.message);
-        }
-*/

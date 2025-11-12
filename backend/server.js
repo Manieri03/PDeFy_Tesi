@@ -21,7 +21,7 @@ function clearDirectory(dirPath) {
     }
 }
 
-function extractImages(pdfPath, outputDir = "uploads/tmp_images") {
+function extractImages(pdfPath, outputDir) {
     return new Promise((resolve, reject) => {
         execFile("python", ["extract_images.py", pdfPath, outputDir], (err, stdout, stderr) => {
             if (err) return reject(err);
@@ -54,18 +54,11 @@ function generateMappingFromImages(extractedImages) {
     });
 }
 
-
 dotenv.config();
 const app = express();
 
-const ensureDir = (dir) => {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-};
-ensureDir("uploads/pdf");
-ensureDir("uploads/tmp_images");
-
 //parser di multipart/form-data
-const upload = multer({ dest: "uploads/pdf/" });
+const upload = multer({ dest: "uploads/tmp_layout_inline/pdf/" });
 
 //controllo key gemini
 const API_KEY = process.env.GEMINI_API_KEY;
@@ -95,32 +88,31 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         log("Inizio richiesta");
         const { prompt } = req.body;
 
-        //validazione prompt e file pdf
         if (!prompt) return res.status(400).json({ error: "Prompt mancante" });
         if (!req.file) return res.status(400).json({ error: "Nessun file PDF caricato" });
+
+        const baseDir = "uploads/tmp_layout_inline";
+        const pdfDir = path.join(baseDir, "pdf");
+        const imagesDir = path.join(baseDir, "images");
+
+        [baseDir, pdfDir, imagesDir].forEach(dir => {
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        });
+
         filePath = req.file.path;
 
-        //lettura del file
         const fileBuffer = fs.readFileSync(filePath);
         const base64File = fileBuffer.toString("base64");
-        let images = await extractImages(filePath);
+        let images = await extractImages(filePath, imagesDir);
 
-        //costruzione del corpo della richiesta: prompt + pdf inline
+        // Costruzione richiesta per Gemini
         const requestBody = {
             contents: [
                 {
                     role: "user",
                     parts: [
-                        //parti della richiesta, prompt + pdf inline
-                        {
-                            text: "Metadata immagini estratte:\n" + JSON.stringify(images)
-                        },
-                        {
-                            inlineData: {
-                                data: base64File,
-                                mimeType: "application/pdf",
-                            },
-                        },
+                        { text: "Metadata immagini estratte:\n" + JSON.stringify(images) },
+                        { inlineData: { data: base64File, mimeType: "application/pdf" } },
                         { text: prompt }
                     ],
                 },
@@ -130,7 +122,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         log("Body costruito, invio a Gemini...");
 
         const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY,
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + API_KEY,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -144,26 +136,29 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
             throw new Error(`Errore API Gemini: ${response.status} - ${errTxt}`);
         }
 
-        //parsing della risposta ricevuta dal modello
         const data = await response.json();
         log("Risposta ricevuta");
         const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        let mapping = [];
-        mapping = generateMappingFromImages(images);
 
+        const mapping = generateMappingFromImages(images);
         const finalHtml = replacePlaceholders(htmlContent, images);
 
-        res.json({ html: finalHtml, mapping, images });
-
+        res.json({
+            html: finalHtml,
+            mapping,
+            images,
+            pdf_saved: filePath,
+            images_dir: imagesDir
+        });
 
     } catch (err) {
         console.error("Errore backend:", err);
         if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
         res.status(500).json({ error: err.message });
-    }finally{
+    } finally {
+        // Pulizia PDF temporanei dopo un po' di tempo
         setTimeout(() => {
             try {
-                clearDirectory("uploads/pdf");
                 clearDirectory("uploads/tmp_images");
                 console.log("Cartelle temporanee pulite");
             } catch (cleanupErr) {
@@ -173,20 +168,36 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
     }
 });
 
-
-function extractStructured(pdfPath, outputDir = "uploads/tmp_structured") {
+function extractStructured(pdfPath, outputDir = "uploads/tmp_layout_JSON") {
     return new Promise((resolve, reject) => {
+        const imagesDir = path.join(outputDir, "images");
+        const layoutsDir = path.join(outputDir, "layouts");
+
+        if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
+        if (!fs.existsSync(layoutsDir)) fs.mkdirSync(layoutsDir, { recursive: true });
+
         execFile(
             "python",
-            ["extract_structured.py", pdfPath, outputDir],
+            ["extract_layout_JSON.py", pdfPath, imagesDir],
             (err, stdout, stderr) => {
                 if (err) return reject(err);
 
                 try {
                     const json = JSON.parse(stdout);
-                    resolve(json);
+
+                    const timestamp = new Date()
+                        .toISOString()
+                        .replace(/[:.]/g, "-");
+                    const jsonPath = path.join(layoutsDir, `page_layout_${timestamp}.json`);
+                    fs.writeFileSync(jsonPath, JSON.stringify(json, null, 2), "utf-8");
+
+                    resolve({
+                        json,
+                        jsonPath,
+                        imagesDir
+                    });
                 } catch (e) {
-                    reject(new Error("Errore nel parsing JSON: " + e.message));
+                    reject(new Error("Errore nel parsing o salvataggio JSON: " + e.message));
                 }
             }
         );
@@ -222,7 +233,7 @@ function replaceStructuredImages(html, structuredJson) {
 }
 
 
-app.post("/api/structured-generate", upload.single("file"), async (req, res) => {
+app.post("/api/generate_JSON", upload.single("file"), async (req, res) => {
     let filePath = null;
 
     try {
@@ -236,9 +247,9 @@ app.post("/api/structured-generate", upload.single("file"), async (req, res) => 
         }
 
         filePath = req.file.path;
-        const outputDir = "uploads/tmp_structured";
+        const outputDir = "uploads/tmp_layout_JSON";
 
-        const structuredJson = await extractStructured(filePath, outputDir);
+        const { json: structuredJson, jsonPath, imagesDir } = await extractStructured(filePath, outputDir);
 
         const requestBody = {
             contents: [
@@ -261,7 +272,7 @@ app.post("/api/structured-generate", upload.single("file"), async (req, res) => 
         };
 
         const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY,
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + API_KEY,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -278,10 +289,16 @@ app.post("/api/structured-generate", upload.single("file"), async (req, res) => 
         const html = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
         const finalHtml = replaceStructuredImages(html, structuredJson);
-        res.json({ html: finalHtml, structured: structuredJson });
+
+        res.json({
+            html: finalHtml,
+            structured: structuredJson,
+            saved_json: jsonPath,
+            images_dir: imagesDir
+        });
 
     } catch (err) {
-        console.error("Errore /api/structured-generate:", err);
+        console.error("Errore /api/generate_JSON:", err);
         res.status(500).json({ error: err.message });
 
     } finally {
@@ -289,14 +306,14 @@ app.post("/api/structured-generate", upload.single("file"), async (req, res) => 
             fs.unlinkSync(filePath);
         }
 
-
+        /*
         setTimeout(() => {
             try {
-                clearDirectory("uploads/tmp_structured");
+                clearDirectory("uploads/pdf");
             } catch (_) {}
         }, 2000);
 
-
+         */
     }
 });
 
