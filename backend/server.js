@@ -7,6 +7,14 @@ import { performance } from "perf_hooks";
 import { execFile } from "child_process";
 import path from "path";
 
+const LLM_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+
+const LLM_MODEL_PRO = "gemini-2.5-pro:generateContent";
+const LLM_MODEL_FLASH = "gemini-2.5-flash:generateContent";
+
+const LLM_SELECTED_MODEL = LLM_MODEL_PRO;
+const LLM_MODEL_URL = `${LLM_API_BASE}/${LLM_SELECTED_MODEL}`;
+
 function clearDirectory(dirPath) {
     if (fs.existsSync(dirPath)) {
         fs.readdirSync(dirPath).forEach(file => {
@@ -121,8 +129,7 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
 
         log("Body costruito, invio a Gemini...");
 
-        const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + API_KEY,
+        const response = await fetch(`${LLM_MODEL_URL}?key=${API_KEY}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -271,8 +278,7 @@ app.post("/api/generate_JSON", upload.single("file"), async (req, res) => {
             ]
         };
 
-        const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + API_KEY,
+        const response = await fetch(`${LLM_MODEL_URL}?key=${API_KEY}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

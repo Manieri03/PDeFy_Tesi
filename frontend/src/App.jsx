@@ -12,8 +12,7 @@ function App() {
     const [prompt, setPrompt] = useState("");
     const [response, setResponse] = useState("");
 
-    //states di file singolo e multipli
-    const [file, setFile] = useState(null);
+    //stato dei file selezionati
     const [files, setFiles] = useState([]);
 
     const [currentFile, setCurrentFile] = useState(null);
@@ -25,7 +24,7 @@ function App() {
     const [extractedStyle, setExtractedStyle] = useState("");
     const [wysiwygStyle, setWysiwygStyle] = useState("");
 
-    const [mode, setMode] = useState("html");
+    const [mode, setMode] = useState("inline");
 
     const processQueue = async (e) => {
         e.preventDefault();
@@ -51,7 +50,7 @@ function App() {
                 formData.append("prompt", prompt);
                 formData.append("file", f);
 
-                const endpoint = mode === "html"
+                const endpoint = mode === "inline"
                     ? "/api/generate"
                     : "/api/generate_JSON";
 
@@ -97,74 +96,6 @@ function App() {
         }
     };
 
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError("");
-        setResponse("");
-
-        //validazione input
-        if (!prompt) {
-            alert("Inserisci un prompt");
-            return;
-        }
-        if (!file) {
-            alert("Seleziona un file PDF!");
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            //costruzione formdata
-            const formData = new FormData();
-            formData.append("prompt", prompt);
-            formData.append("file", file);
-
-            //invio al backend
-            const endpoint = mode === "html"
-                ? "/api/generate"
-                : "/api/generate_JSON";
-
-            const res = await fetch(endpoint, {
-                method: "POST",
-                body: formData,
-            });
-
-            //controllo di errori di rete
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || `Errore HTTP: ${res.status}`);
-            }
-
-            //parsing della risposta del modello
-            const data = await res.json();
-            //console.log("Risposta completa:", data); Debug
-
-            const text = data.html;
-            if (!text) {
-                throw new Error("Nessuna risposta dal modello");
-            }
-
-            //estrazione dello stile dall'intero testo
-            const styleMatch = text.match(/<style[\s\S]*?<\/style>/);
-            const styleContent = styleMatch ? styleMatch[0] : "";
-            //estrazione del solo html
-            const htmlContent = text.replace(/<style[\s\S]*?<\/style>/, "");
-
-            //salvataggio degli stati di React
-            setExtractedStyle(styleContent);
-            setResponse(htmlContent);
-            setEditedHtml(htmlContent);
-
-        } catch (err) {
-            console.error("Errore:", err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
         if (response && responseRef.current) {
             // Scroll verso la risposta
@@ -193,7 +124,7 @@ function App() {
 
     //Prompt predefinito completo per Html
     const handleHtmlPreset = () => {
-        if (mode === "html") {
+        if (mode === "inline") {
             setPrompt(HTML_PROMPT);
         } else {
             setPrompt(HTML_PROMPT2);
