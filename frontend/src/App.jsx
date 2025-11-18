@@ -149,7 +149,7 @@ function App() {
                                     checked={mode === "inline"}
                                     onChange={() => setMode("inline")}
                                 />
-                                PDF inline
+                                <span>PDF inline</span>
                             </label>
 
                             <label>
@@ -159,8 +159,9 @@ function App() {
                                     checked={mode === "JSON"}
                                     onChange={() => setMode("JSON")}
                                 />
-                                Layout JSON
+                                <span>Layout JSON</span>
                             </label>
+
                         </div>
                     </div>
 

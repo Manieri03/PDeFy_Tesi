@@ -225,3 +225,38 @@ textarea:focus{
 .editor_tiny{
   width: 90%;
 }
+
+
+.mode-switch {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+}
+
+.mode-switch label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #213547;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.25s ease;
+  user-select: none;
+  border: 2px solid transparent;
+  font-size: 1.1rem;
+}
+
+.mode-switch input[type="radio"] {
+  display: none;
+}
+
+.mode-switch input[type="radio"]:checked + span {
+  background-color: #2ba9ed;
+  color: #000;
+  border-color: #1f7fb3;
+  font-weight: bold;
+  padding: 1rem;
+  border-radius: 2rem;
+}
