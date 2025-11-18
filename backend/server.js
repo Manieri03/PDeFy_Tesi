@@ -11,8 +11,9 @@ const LLM_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const LLM_MODEL_PRO = "gemini-2.5-pro:generateContent";
 const LLM_MODEL_FLASH = "gemini-2.5-flash:generateContent";
+const LLM_MODEL_TEST = "gemini-3-pro-preview:generateContent";
 
-const LLM_SELECTED_MODEL = LLM_MODEL_PRO;
+const LLM_SELECTED_MODEL = LLM_MODEL_TEST;
 const LLM_MODEL_URL = `${LLM_API_BASE}/${LLM_SELECTED_MODEL}`;
 
 function catchError(status, rawError) {
