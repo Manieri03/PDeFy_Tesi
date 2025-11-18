@@ -12,8 +12,30 @@ const LLM_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const LLM_MODEL_PRO = "gemini-2.5-pro:generateContent";
 const LLM_MODEL_FLASH = "gemini-2.5-flash:generateContent";
 
-const LLM_SELECTED_MODEL = LLM_MODEL_FLASH;
+const LLM_SELECTED_MODEL = LLM_MODEL_PRO;
 const LLM_MODEL_URL = `${LLM_API_BASE}/${LLM_SELECTED_MODEL}`;
+
+function catchError(status, rawError) {
+    switch (status) {
+        case 400:
+            return "Richiesta non valida. Controlla il prompt o il PDF.";
+        case 401:
+            return "Chiave API non valida o mancante.";
+        case 403:
+            return "Accesso negato. Controlla le autorizzazioni dell’API.";
+        case 404:
+            return "Modello non trovato.";
+        case 429:
+            return "Troppe richieste in poco tempo. Attendi qualche secondo.";
+        case 500:
+            return "Errore interno del server Gemini.";
+        case 503:
+            return "Modello in overload, riprova più tardi.";
+        default:
+            return "Errore sconosciuto dal modello.";
+    }
+}
+
 
 function clearDirectory(dirPath) {
     if (fs.existsSync(dirPath)) {
@@ -119,6 +141,16 @@ app.post("/api/generate", uploadInline.single("file"), async (req, res) => {
             contents: [
                 {
                     role: "user",
+                    parts: [{
+                        text: `Restituisci esclusivamente HTML puro.
+                            Non formattare l'output come blocco di codice.
+                            Non inserire i delimitatori \`\`\`html o \`\`\`.
+                            Inizia direttamente dal primo tag HTML e termina con l'ultimo.
+                            Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.`
+                    }]
+                },
+                {
+                    role: "user",
                     parts: [
                         { text: "Metadata immagini estratte:\n" + JSON.stringify(images) },
                         { inlineData: { data: base64File, mimeType: "application/pdf" } },
@@ -139,9 +171,11 @@ app.post("/api/generate", uploadInline.single("file"), async (req, res) => {
         );
 
         if (!response.ok) {
+            const status = response.status;
             const errTxt = await response.text();
-            console.error("Errore Gemini:", errTxt);
-            throw new Error(`Errore API Gemini: ${response.status} - ${errTxt}`);
+
+            const errorFront = catchError(status, errTxt);
+            throw new Error(errorFront);
         }
 
         const data = await response.json();
@@ -279,6 +313,16 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
             contents: [
                 {
                     role: "user",
+                    parts: [{
+                        text: `Restituisci esclusivamente HTML puro.
+                            Non formattare l'output come blocco di codice.
+                            Non inserire i delimitatori \`\`\`html o \`\`\`.
+                            Inizia direttamente dal primo tag HTML e termina con l'ultimo.
+                            Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.`
+                    }]
+                },
+                {
+                    role: "user",
                     parts: [
                         {
                             text:
@@ -304,8 +348,11 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
         );
 
         if (!response.ok) {
+            const status = response.status;
             const errTxt = await response.text();
-            throw new Error(`Errore API Gemini: ${response.status} - ${errTxt}`);
+
+            const errorFront = catchError(status, errTxt);
+            throw new Error(errorFront);
         }
 
         const data = await response.json();
@@ -338,9 +385,6 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
          */
     }
 });
-
-
-
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Backend avviato su http://localhost:${PORT}`));

@@ -4,7 +4,8 @@
 
 .tox-tinymce {
     width: 100% !important;
-    max-width: none !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 

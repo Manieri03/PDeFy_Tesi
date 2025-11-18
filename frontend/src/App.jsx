@@ -1,6 +1,5 @@
 import {useState, useRef,useEffect} from "react";
 import "./App.css";
-import ReactMarkdown from "react-markdown";
 import { File, Send, FileText,Download,FileCode, Loader } from "lucide-react";
 import logo from "./assets/PDefyIcon.png";
 import WysiwygEditor from "./WysiwygEditor";
@@ -28,6 +27,7 @@ function App() {
 
     const processQueue = async (e) => {
         e.preventDefault();
+        setError("");
         if (!prompt) {
             alert("Inserisci un prompt");
             return;
@@ -60,9 +60,8 @@ function App() {
                 });
 
                 if (!res.ok) {
-                    const err = await res.text();
-                    // Lancia un errore per fermare il ciclo se un file fallisce
-                    throw new Error(`Errore con ${f.name} - ${res.status}: ${err}`);
+                    const errorData = await res.json();
+                    throw new Error(`Errore con ${f.name}: ${errorData.error}`);
                 }
 
                 const data = await res.json();
@@ -132,95 +131,101 @@ function App() {
     };
 
     return (
-        <div className="container_div">
-            <div className="header_div">
-                <img className="logo" src={logo}/>
-                <h1>Estrazione PDF</h1>
-            </div>
-            <div className="predefined_prmpt_div">
-                <button className="btn_submit" onClick={handleHtmlPreset}>HTML <FileCode size={20}></FileCode></button>
-            </div>
-            <div className="mode-switch">
-                <label>
-                    <input
-                        type="radio"
-                        value="inline"
-                        checked={mode === "inline"}
-                        onChange={() => setMode("inline")}
-                    />
-                    PDF inline
-                </label>
+        <>
+            <div className="graphic"></div>
+            <div className="container_div">
 
-                <label>
-                    <input
-                        type="radio"
-                        value="JSON"
-                        checked={mode === "JSON"}
-                        onChange={() => setMode("JSON")}
-                    />
-                    Layout JSON
-                </label>
-            </div>
-
-            <form className="form_input" onSubmit={(e) => processQueue(e)}>
-                <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Inserisci qui il tuo prompt..."
-                    rows={5}
-                />
-
-                <label className="lbl_pdf">
-                    <File size={20} />
-                    {files.length > 1
-                        ? `${files.length} file selezionati`
-                        : files.length === 1
-                            ? files[0].name
-                            : "Seleziona PDF"}
-                    <input
-                        type="file"
-                        accept="application/pdf"
-                        multiple
-                        onChange={(e) => setFiles(Array.from(e.target.files))}
-                    />
-                </label>
-                <button className="btn_submit" type="submit" disabled={loading}>
-                    {loading ? <Loader className="spin" size={28}></Loader> : <Send size={28}></Send>}
-                </button>
-            </form>
-
-
-            {loading && currentFile && (
-                <div className="loading_div">
-                    <p>Elaborazione di: <b>{currentFile}</b></p>
+                <div className="header_div">
+                    <img className="logo" src={logo}/>
                 </div>
-            )}
+                <main>
+                    <div className="settings_div">
+                        <button className="btn_submit btn_preset" onClick={handleHtmlPreset}>Prompt HTML<FileCode size={20}></FileCode></button>
+                        <div className="mode-switch">
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="inline"
+                                    checked={mode === "inline"}
+                                    onChange={() => setMode("inline")}
+                                />
+                                PDF inline
+                            </label>
 
-            {error && (
-                <div className="error_div">
-                    <h3>Errore:</h3>
-                    <p>{error}</p>
-                </div>
-            )}
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="JSON"
+                                    checked={mode === "JSON"}
+                                    onChange={() => setMode("JSON")}
+                                />
+                                Layout JSON
+                            </label>
+                        </div>
+                    </div>
 
-            {response && (
-                <div ref={responseRef} className="response_div">
-                    <h2>
-                        <FileText size={20} className="icon_response" /> Output:
-                    </h2>
+                    <form className="form_input" onSubmit={(e) => processQueue(e)}>
+                        <textarea
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder="Inserisci qui il tuo prompt..."
+                            rows={5}
+                        />
 
-                    <WysiwygEditor classname="editor_tiny" initialHtml={response} onChange={setEditedHtml} editedHtml={editedHtml} style={wysiwygStyle} />
+                        <label className="lbl_pdf">
+                            <File size={20} />
+                            {files.length > 1
+                                ? `${files.length} file selezionati`
+                                : files.length === 1
+                                    ? files[0].name
+                                    : "Seleziona PDF"}
+                            <input
+                                type="file"
+                                accept="application/pdf"
+                                multiple
+                                onChange={(e) => setFiles(Array.from(e.target.files))}
+                            />
+                        </label>
+                        <button className="btn_submit" type="submit" disabled={loading}>
+                            {loading ? <Loader className="spin" size={28}></Loader> : <Send size={28}></Send>}
+                        </button>
+                    </form>
 
-                    <button
-                        className="btn_submit"
-                        id="btn_download"
-                        onClick={downloadHTML}
-                    >
-                        <Download size={30} />
-                    </button>
-                </div>
-            )}
-        </div>
+
+                    {loading && currentFile && (
+                        <div className="loading_div">
+                            <p>Elaborazione di: <b>{currentFile}</b></p>
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="error_div">
+                            <h3>Errore:</h3>
+                            <p>{error}</p>
+                        </div>
+                    )}
+
+                </main>
+
+                {response && (
+                    <div ref={responseRef} className="response_div">
+                        <h2>
+                            <FileText size={20} className="icon_response" /> Output:
+                        </h2>
+
+                        <WysiwygEditor classname="editor_tiny" initialHtml={response} onChange={setEditedHtml} editedHtml={editedHtml} style={wysiwygStyle} />
+
+                        <button
+                            className="btn_submit"
+                            id="btn_download"
+                            onClick={downloadHTML}
+                        >
+                            <Download size={30} />
+                        </button>
+                    </div>
+                )}
+            </div>
+        </>
     );
 }
 

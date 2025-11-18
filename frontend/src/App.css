@@ -1,16 +1,52 @@
-#root {
-  max-width: 1280px;
+.container_div{
+  width: 100vw;
   margin: 0 auto;
-  padding: 3rem;
   text-align: center;
   justify-content: center;
   align-items: center;
-  h1{
-    color: #1b709e;
-    font-size: 3.2em;
-    line-height: 1.1;
-    margin-top: 0;
+}
+
+main{
+  display: flex;
+  flex-direction: row;
+  gap:4rem;
+}
+
+.header_div{
+  height: 35vh;
+  img{
+    height: 100%;
+    width: auto;
   }
+}
+
+.settings_div{
+  background-color: #213547;
+  color: white;
+  padding: 2rem;
+  border-radius: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  justify-content: center;
+  align-items: center;
+
+  .btn_preset{
+    width: 100%;
+  }
+}
+
+.graphic{
+  width: 100%;
+  background-color: #213547;
+  min-height: 6vh;
+  margin-bottom: 6vh;
+}
+h1{
+  color: #1b709e;
+  font-size: 3.2em;
+  line-height: 1.1;
+  margin-top: 0;
 }
 
 
@@ -38,7 +74,7 @@
   font-size: 1.1em;
   cursor: pointer;
   color: white;
-  background-color: #2ba9ed;
+  background-color: #176087;
   transition: background-color 0.3s;
   border-radius: 8px;
   corner-shape:squircle;
@@ -60,6 +96,7 @@
 }
 
 .error_div{
+  width: 10vw;
   color: red;
   margin-top: 1rem;
 }
@@ -99,7 +136,7 @@ textarea:focus{
   gap: 7px;
   padding: 10px 20px;
   cursor: pointer;
-  background-color: #2ba9ed;
+  background-color: #176087;
   color: white;
   border-radius: 8px;
   corner-shape:squircle;
@@ -129,8 +166,9 @@ textarea:focus{
   background-color: #176087;
   padding: 0.5rem 1rem;
   color: white;
-  width:90vw;
+  width:80vw;
   gap:1rem;
+  margin-bottom: 2rem;
 }
 
 .icon_response{

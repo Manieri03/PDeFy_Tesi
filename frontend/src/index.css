@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Chau+Philomene+One:ital@0;1&display=swap');
 :root {
+  overflow-x: hidden;
   --main-font: 'Chau Philomene One', sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -19,8 +20,6 @@ body {
   margin: 0;
   display: flex;
   place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
 }
 
 @media (prefers-color-scheme: light) {
