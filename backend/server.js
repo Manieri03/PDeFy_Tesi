@@ -12,7 +12,7 @@ const LLM_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const LLM_MODEL_PRO = "gemini-2.5-pro:generateContent";
 const LLM_MODEL_FLASH = "gemini-2.5-flash:generateContent";
 
-const LLM_SELECTED_MODEL = LLM_MODEL_PRO;
+const LLM_SELECTED_MODEL = LLM_MODEL_FLASH;
 const LLM_MODEL_URL = `${LLM_API_BASE}/${LLM_SELECTED_MODEL}`;
 
 function clearDirectory(dirPath) {
@@ -66,7 +66,8 @@ dotenv.config();
 const app = express();
 
 //parser di multipart/form-data
-const upload = multer({ dest: "uploads/tmp_layout_inline/pdf/" });
+const uploadInline = multer({ dest: "uploads/tmp_layout_inline/pdf/" });
+const uploadJson = multer({ dest: "uploads/tmp_layout_JSON/pdf/" });
 
 //controllo key gemini
 const API_KEY = process.env.GEMINI_API_KEY;
@@ -88,7 +89,7 @@ function makeTimer(label = "TIMER") {
 }
 
 // endpoint POST /api/generate
-app.post("/api/generate", upload.single("file"), async (req, res) => {
+app.post("/api/generate", uploadInline.single("file"), async (req, res) => {
     const log = makeTimer("Gemini PDF");
     let filePath = null;
 
@@ -163,26 +164,21 @@ app.post("/api/generate", upload.single("file"), async (req, res) => {
         if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
         res.status(500).json({ error: err.message });
     } finally {
+        /*
         // Pulizia PDF temporanei dopo un po' di tempo
         setTimeout(() => {
             try {
-                clearDirectory("uploads/tmp_images");
-                console.log("Cartelle temporanee pulite");
+                clearDirectory("uploads/tmp_layout_inline");
             } catch (cleanupErr) {
                 console.error("Errore nella pulizia:", cleanupErr);
             }
         }, 2000);
+        */
     }
 });
 
-function extractStructured(pdfPath, outputDir = "uploads/tmp_layout_JSON") {
+function extractStructured(pdfPath, imagesDir, layoutsDir) {
     return new Promise((resolve, reject) => {
-        const imagesDir = path.join(outputDir, "images");
-        const layoutsDir = path.join(outputDir, "layouts");
-
-        if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
-        if (!fs.existsSync(layoutsDir)) fs.mkdirSync(layoutsDir, { recursive: true });
-
         execFile(
             "python",
             ["extract_layout_JSON.py", pdfPath, imagesDir],
@@ -195,21 +191,34 @@ function extractStructured(pdfPath, outputDir = "uploads/tmp_layout_JSON") {
                     const timestamp = new Date()
                         .toISOString()
                         .replace(/[:.]/g, "-");
-                    const jsonPath = path.join(layoutsDir, `page_layout_${timestamp}.json`);
-                    fs.writeFileSync(jsonPath, JSON.stringify(json, null, 2), "utf-8");
+
+                    const jsonPath = path.join(
+                        layoutsDir,
+                        `page_layout_${timestamp}.json`
+                    );
+
+                    fs.writeFileSync(
+                        jsonPath,
+                        JSON.stringify(json, null, 2),
+                        "utf-8"
+                    );
 
                     resolve({
                         json,
                         jsonPath,
                         imagesDir
                     });
+
                 } catch (e) {
-                    reject(new Error("Errore nel parsing o salvataggio JSON: " + e.message));
+                    reject(
+                        new Error("Errore nel parsing o salvataggio JSON: " + e.message)
+                    );
                 }
             }
         );
     });
 }
+
 
 function replaceStructuredImages(html, structuredJson) {
     let imageIndex = 1;
@@ -240,7 +249,7 @@ function replaceStructuredImages(html, structuredJson) {
 }
 
 
-app.post("/api/generate_JSON", upload.single("file"), async (req, res) => {
+app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
     let filePath = null;
 
     try {
@@ -256,7 +265,15 @@ app.post("/api/generate_JSON", upload.single("file"), async (req, res) => {
         filePath = req.file.path;
         const outputDir = "uploads/tmp_layout_JSON";
 
-        const { json: structuredJson, jsonPath, imagesDir } = await extractStructured(filePath, outputDir);
+        const imagesDir = path.join(outputDir, "images");
+        const layoutsDir = path.join(outputDir, "layouts");
+
+        [outputDir, imagesDir, layoutsDir].forEach(dir => {
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        });
+
+        const { json: structuredJson, jsonPath } =
+            await extractStructured(filePath, imagesDir, layoutsDir);
 
         const requestBody = {
             contents: [
@@ -318,7 +335,6 @@ app.post("/api/generate_JSON", upload.single("file"), async (req, res) => {
                 clearDirectory("uploads/pdf");
             } catch (_) {}
         }, 2000);
-
          */
     }
 });

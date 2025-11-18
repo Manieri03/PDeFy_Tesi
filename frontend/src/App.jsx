@@ -144,9 +144,9 @@ function App() {
                 <label>
                     <input
                         type="radio"
-                        value="html"
-                        checked={mode === "html"}
-                        onChange={() => setMode("html")}
+                        value="inline"
+                        checked={mode === "inline"}
+                        onChange={() => setMode("inline")}
                     />
                     PDF inline
                 </label>
