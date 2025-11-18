@@ -83,7 +83,6 @@ h1{
   font-family: inherit;
   text-align: center;
   justify-content: center;
-
 }
 
 .btn_submit:hover {
@@ -104,6 +103,8 @@ h1{
 .lbl_pdf{
   display: block;
   margin-bottom: 1rem;
+  width: 90%;
+  justify-content: center;
 
   input{
     margin-top: 1rem;
