@@ -5,44 +5,32 @@ Struttura e Semantica:
 - Utilizza tag HTML semantici corretti: titoli <h1>, <h2>, <h3>, ecc.; paragrafi <p>; liste <ul>/<ol>; tabelle <table>/<thead>/<tbody>/<tr>/<th>/<td>.
 - Mantieni la gerarchia dei titoli originale del PDF.
 - Mantieni l'ordine originale del contenuto.
-- Non generare o ricreare immagini reali.
-- Non aggiungere nuove informazioni, suggerimenti o soluzioni.
 
 Layout e Stile:
-- Mantieni il layout a due colonne dove presente nel PDF.
 - Assegna classi CSS significative (es. class="nome-sezione") a sezioni ed elementi per facilitare la stilizzazione.
-- Includi una sezione <style></style> all'interno di <head> per definire uno stile gradevole, pulito e coerente (font, spaziatura, colori neutri).
+- Includi una sezione <style></style> all'interno di <head> per definire uno stile gradevole, pulito e coerente.
 - Il file HTML prodotto deve essere autosufficiente (CSS inline in <head>).
 
 Esercizi:
 - NON risolvere NESSUN esercizio. Riportali fedelmente.
 - Ogni esercizio deve essere contenuto in una <section> con id esatto: id="exercise-n", dove n è il numero progressivo dell'esercizio nel documento (1,2,3,...).
-- Mantieni i testi originali (titoli, enunciati, opzioni, ecc.) senza aggiungere, omettere o riformulare contenuti.
+- Mantieni i testi originali.
 
 Immagini:
 - NON includere immagini reali: sostituisci ogni immagine con un placeholder centrato del formato esatto: [IMAGE_X], dove X è l'indice progressivo dell'immagine nel PDF (la prima immagine è [IMAGE_1], ecc.).
 - Inserisci il placeholder [IMAGE_X] dentro un contenitore <div class="image-placeholder"> centrato.
 - Fai il div della dimensione adeguata in modo da contenere tutta l'immagine e non coprire altre parti del layout.
-Metadati delle immagini:
-Ti fornirò una lista di immagini estratte dal PDF in formato JSON, ciascuna con:
+
+Metadati delle immagini che ti fornirò:
 - page: numero della pagina
 - x, y: coordinate del punto superiore sinistro dell'immagine nel PDF
 - width, height: dimensioni effettive dell'immagine
 - index: posizione progressiva nel documento
 
 Uso dei metadati:
-1. Le immagini devono essere inserite nell’HTML come placeholder [IMAGE_X] nello stesso punto logico dedotto dal layout originale.
-2. Usa page, x e y per capire l'ordine verticale degli elementi:
-   - Se un'immagine ha y più basso, si trova più in basso nella pagina.
-   - Ordina il contenuto PDF rispettando questa verticalità.
-3. Usa x per capire se l'immagine era nella colonna sinistra o destra:
-   - x < 50% della larghezza pagina => colonna sinistra.
-   - x > 50% della larghezza pagina => colonna destra.
-4. Il placeholder deve rappresentare l’immagine nelle dimensioni proporzionali all’originale:
-   - Crea il <div class="image-placeholder"> con width e height proporzionali ai metadati.
-5. Quando un'immagine è vicina (in termini di y) a una parte di testo dell’esercizio, inserisci il placeholder in corrispondenza esatta nell’HTML.
-6. Le immagini vengono fornite in ordine, ma usa le coordinate per posizionarle nel punto giusto della ricostruzione HTML.
-
+- Le immagini devono essere inserite nell’HTML come placeholder [IMAGE_X] nello stesso punto logico dedotto dal layout originale.
+- Usa le coordinate per posizionarle nel punto corrispondente al layout del pdf.
+-Usa width e height per considerarle nel layout di quella dimensione
 
 Riconoscimento della tipologia di esercizio:
 - Identifica automaticamente la tipologia dell'esercizio basandoti su parole chiave presenti nel titolo o nell'enunciato.
@@ -61,20 +49,11 @@ Riconoscimento della tipologia di esercizio:
   - "disegno" - se compaiono parole come "disegno", "rappresentazione", "costruisci", "modella", "crea".
     Se nessuna categoria è riconosciuta, assegna class="exercise exercise-generico".
   
-In ogni caso, concentrati anche sull'identificazione delle singole opzioni o sottosezioni degli esercizi.
-Identificale e marcale con una classe univoca che faccia riferimento all'esercizio e al fatto che sia un'opzione o una sottosezione di esso
-
-Separa con un a capo ogni esercizio in modo da rendere l'html piu leggibile
+Marca le opzioni o sottosezioni di un esercizio <section id="exercise-n" class="exercise exercise-tipologia"> (con n numero dell'esercizio e tipologia tipo esercizio)
 
 Nel caso di un esercizio identificato come di "completamento" o di "scrittura" o di "domanda-aperta"
-  1. Per ogni immagine ([IMAGE_X]) presente all'interno della stessa sezione esercizio, inserire subito dopo il placeholder dell'immagine un campo di completamento specifico :<input type="text" class="image-input"/>.
-  2. Se c'è uno spazio per il completamento anche senza immagine inserisci sempre: <input type="text" class="image-input"/>.
-  3. Se l'enunciato richiede più spazi (es. "completa le seguenti parole:" e poi lista di immagini o frasi), crea tanti<input type="text" class="image-input"/> quanti necessari, cercando di rispettare l'ordine del contenuto originale. Non inventare elementi: crea spazi pari al numero di item elencati.
-- Se l'esercizio non contiene parole chiave di completamento, NON inserire spazi di completamento aggiuntivi.
+  - Per ogni immagine ([IMAGE_X]) presente all'interno dell'esercizio di completamento, <input type="text" class="image-input"/> se c'è un campo di completamento in input.
+  - Se c'è uno spazio per il completamento anche senza immagine inserisci sempre: <input type="text"/>.
 
-Liste, Tabelle, Esercizi a più parti:
-- Se un esercizio è composto da più sottopunti (a), (b), (c) e il titolo richiede completamento, aggiungi dopo ogni sottopunto che rappresenta un elemento da completare un <input type="text" class="image-input"/>.
-
-Non inserire dei paragrafi all'inizio e alla fine con \`\`\`html e \`\`\`.
-Rendi il codice HTML indentato correttamente.
-Fine delle istruzioni. Genera il file HTML seguendo esattamente queste regole.`;
+Fine delle istruzioni. 
+Genera il file HTML seguendo esattamente queste regole.`;
