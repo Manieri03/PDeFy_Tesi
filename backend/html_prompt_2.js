@@ -76,4 +76,5 @@ Liste, Tabelle, Esercizi a più parti:
 - Se un esercizio è composto da più sottopunti (a), (b), (c) e il titolo richiede completamento, aggiungi dopo ogni sottopunto che rappresenta un elemento da completare un <input type="text" class="image-input"/>.
 
 Non inserire dei paragrafi all'inizio e alla fine con \`\`\`html e \`\`\`.
+Rendi il codice HTML indentato correttamente.
 Fine delle istruzioni. Genera il file HTML seguendo esattamente queste regole.`;

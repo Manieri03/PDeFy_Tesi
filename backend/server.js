@@ -13,7 +13,7 @@ const LLM_MODEL_PRO = "gemini-2.5-pro:generateContent";
 const LLM_MODEL_FLASH = "gemini-2.5-flash:generateContent";
 const LLM_MODEL_TEST = "gemini-3-pro-preview:generateContent";
 
-const LLM_SELECTED_MODEL = LLM_MODEL_TEST;
+const LLM_SELECTED_MODEL = LLM_MODEL_PRO;
 const LLM_MODEL_URL = `${LLM_API_BASE}/${LLM_SELECTED_MODEL}`;
 
 function catchError(status, rawError) {
@@ -199,16 +199,15 @@ app.post("/api/generate", uploadInline.single("file"), async (req, res) => {
         if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
         res.status(500).json({ error: err.message });
     } finally {
-        /*
-        // Pulizia PDF temporanei dopo un po' di tempo
         setTimeout(() => {
             try {
-                clearDirectory("uploads/tmp_layout_inline");
+                clearDirectory("uploads/tmp_layout_inline/images");
+                clearDirectory("uploads/tmp_layout_inline/pdf");
             } catch (cleanupErr) {
                 console.error("Errore nella pulizia:", cleanupErr);
             }
         }, 2000);
-        */
+
     }
 });
 
@@ -377,13 +376,14 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
             fs.unlinkSync(filePath);
         }
 
-        /*
+
         setTimeout(() => {
             try {
-                clearDirectory("uploads/pdf");
+                clearDirectory("uploads/tmp_layout_JSON/images");
+                clearDirectory("uploads/tmp_layout_JSON/layouts");
+                clearDirectory("uploads/tmp_layout_JSON/pdf");
             } catch (_) {}
         }, 2000);
-         */
     }
 });
 
