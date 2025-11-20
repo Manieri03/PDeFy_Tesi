@@ -34,8 +34,12 @@ with pdfplumber.open(pdf_path) as pdf:
             cropped.save(img_path, format="PNG")
 
             images_info.append({
+                "page": page_index,
                 "path": img_path,
+                "ext": "png",
                 "bbox": [x0, y0, x1, y1],
+                "x": x0,
+                "y": y0,
                 "width": x1 - x0,
                 "height": y1 - y0
             })

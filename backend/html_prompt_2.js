@@ -1,10 +1,18 @@
 export const HTML_PROMPT2 = `Istruzioni e Formato di Output:
-Output Esclusivo: Rispondi solo con il codice HTML. Non includere spiegazioni, testo extra o introduzioni/conclusioni.
 
 Struttura e Semantica:
 - Utilizza tag HTML semantici corretti: titoli <h1>, <h2>, <h3>, ecc.; paragrafi <p>; liste <ul>/<ol>; tabelle <table>/<thead>/<tbody>/<tr>/<th>/<td>.
 - Mantieni la gerarchia dei titoli originale del PDF.
 - Mantieni l'ordine originale del contenuto.
+
+Formato dell'input (JSON di layout):
+- Ti verrà fornito un JSON che rappresenta il contenuto di un PDF scolastico.
+- Il JSON conterrà elementi testuali e immagini già in ordine logico di lettura.
+- Per ogni immagine saranno forniti almeno i seguenti metadati:
+  - page: numero di pagina
+  - x, y: coordinate del punto superiore sinistro dell'immagine nel PDF
+  - width, height: dimensioni effettive dell'immagine
+- Utilizza questi dati solo per rispettare la posizione logica e la dimensione relativa delle immagini nel layout HTML.
 
 Layout e Stile:
 - Assegna classi CSS significative (es. class="nome-sezione") a sezioni ed elementi per facilitare la stilizzazione.
@@ -21,20 +29,14 @@ Immagini:
 - Inserisci il placeholder [IMAGE_X] dentro un contenitore <div class="image-placeholder"> centrato.
 - Fai il div della dimensione adeguata in modo da contenere tutta l'immagine e non coprire altre parti del layout.
 
-Metadati delle immagini che ti fornirò:
-- page: numero della pagina
-- x, y: coordinate del punto superiore sinistro dell'immagine nel PDF
-- width, height: dimensioni effettive dell'immagine
-- index: posizione progressiva nel documento
-
-Uso dei metadati:
+Uso dei metadati delle immagini:
 - Le immagini devono essere inserite nell’HTML come placeholder [IMAGE_X] nello stesso punto logico dedotto dal layout originale.
 - Usa le coordinate per posizionarle nel punto corrispondente al layout del pdf.
 -Usa width e height per considerarle nel layout di quella dimensione
 
 Riconoscimento della tipologia di esercizio:
 - Identifica automaticamente la tipologia dell'esercizio basandoti su parole chiave presenti nel titolo o nell'enunciato.
-- Aggiungi alla sezione dell'esercizio un attributo className che includa la categoria riconosciuta.
+- Aggiungi alla sezione dell'esercizio un attributo class che includa la categoria riconosciuta.
   Esempio: <section id="exercise-1" class="exercise exercise-completamento">.
 - Le categorie principali da riconoscere sono:
   - "completamento" - se compaiono termini come "completa", "riempi", "inserisci", "scrivi", "determina","sostituisci".

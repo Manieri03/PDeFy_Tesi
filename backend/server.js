@@ -13,7 +13,7 @@ const LLM_MODEL_PRO = "gemini-2.5-pro:generateContent";
 const LLM_MODEL_FLASH = "gemini-2.5-flash:generateContent";
 const LLM_MODEL_TEST = "gemini-3-pro-preview:generateContent";
 
-const LLM_SELECTED_MODEL = LLM_MODEL_PRO;
+const LLM_SELECTED_MODEL = LLM_MODEL_TEST;
 const LLM_MODEL_URL = `${LLM_API_BASE}/${LLM_SELECTED_MODEL}`;
 
 function catchError(status, rawError) {
@@ -61,23 +61,21 @@ function extractImages(pdfPath, outputDir) {
     });
 }
 
-function replacePlaceholders(html, extractedImages) {
-
-    // sostituisci i placeholder nell'ordine
-    extractedImages.forEach((img, index) => {
-        const placeholder = `[IMAGE_${index + 1}]`;
+function replaceAllPlaceholders(html, images) {
+    images.forEach((img, i) => {
+        const placeholder = `[IMAGE_${i + 1}]`;
         const base64 = fs.readFileSync(img.path).toString("base64");
-        const imgTag = `<img src="data:image/${img.ext};base64,${base64}" style="width:${img.width}px;height:${img.height}px;" />`;
+        const imgTag =
+            `<img src="data:image/${img.ext};base64,${base64}" style="width:${img.width}px;height:${img.height}px;" />`;
         html = html.replaceAll(placeholder, imgTag);
     });
-
     return html;
 }
 
 function generateMappingFromImages(extractedImages) {
-    return extractedImages.map((img, index) => {
+    return extractedImages.map((img, i) => {
         return {
-            placeholder: `[IMAGE_${index + 1}]`,
+            placeholder: `[IMAGE_${i + 1}]`,
             page: img.page,
             x: img.x,
             y: img.y
@@ -147,7 +145,8 @@ app.post("/api/generate", uploadInline.single("file"), async (req, res) => {
                             Non formattare l'output come blocco di codice.
                             Non inserire i delimitatori \`\`\`html o \`\`\`.
                             Inizia direttamente dal primo tag HTML e termina con l'ultimo.
-                            Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.`
+                            Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.
+                            Non includere spiegazioni, testo extra o introduzioni/conclusioni.`
                     }]
                 },
                 {
@@ -184,7 +183,7 @@ app.post("/api/generate", uploadInline.single("file"), async (req, res) => {
         const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
         const mapping = generateMappingFromImages(images);
-        const finalHtml = replacePlaceholders(htmlContent, images);
+        const finalHtml = replaceAllPlaceholders(htmlContent, images);
 
         res.json({
             html: finalHtml,
@@ -254,35 +253,6 @@ function extractStructured(pdfPath, imagesDir, layoutsDir) {
 }
 
 
-function replaceStructuredImages(html, structuredJson) {
-    let imageIndex = 1;
-
-    // Estrae tutte le immagini da tutte le pagine in ordine
-    const allImages = structuredJson.pages.flatMap(page =>
-        page.images?.map(img => ({
-            index: imageIndex++,
-            path: img.path,
-            width: img.width,
-            height: img.height
-        })) || []
-    );
-
-    // Sostituzione identica al primo endpoint
-    allImages.forEach(img => {
-        const placeholder = `[IMAGE_${img.index}]`;
-
-        // Converte immagine in base64
-        const base64 = fs.readFileSync(img.path).toString("base64");
-
-        const tag = `<img src="data:image/png;base64,${base64}" style="width:${img.width}px;height:${img.height}px;">`;
-
-        html = html.replaceAll(placeholder, tag);
-    });
-
-    return html;
-}
-
-
 app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
     let filePath = null;
 
@@ -318,7 +288,8 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
                             Non formattare l'output come blocco di codice.
                             Non inserire i delimitatori \`\`\`html o \`\`\`.
                             Inizia direttamente dal primo tag HTML e termina con l'ultimo.
-                            Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.`
+                            Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.
+                            Non includere spiegazioni, testo extra o introduzioni/conclusioni.\``
                     }]
                 },
                 {
@@ -330,9 +301,7 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
                                 JSON.stringify(structuredJson)
                         },
                         {
-                            text:
-                                "\n\nIstruzioni:\n" +
-                                prompt
+                            text:prompt
                         }
                     ]
                 }
@@ -358,7 +327,8 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
         const data = await response.json();
         const html = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-        const finalHtml = replaceStructuredImages(html, structuredJson);
+        const flattenedImages = structuredJson.pages.flatMap(p => p.images);
+        const finalHtml = replaceAllPlaceholders(html, flattenedImages);
 
         res.json({
             html: finalHtml,

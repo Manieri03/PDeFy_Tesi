@@ -1,5 +1,4 @@
 export const HTML_PROMPT = `Istruzioni e Formato di Output:
-Output Esclusivo: Rispondi solo con il codice HTML. Non includere spiegazioni, testo extra o introduzioni/conclusioni.
 
 Struttura e Semantica:
 - Utilizza tag HTML semantici corretti: titoli <h1>, <h2>, <h3>, ecc.; paragrafi <p>; liste <ul>/<ol>; tabelle <table>/<thead>/<tbody>/<tr>/<th>/<td>.
@@ -25,7 +24,6 @@ Metadati delle immagini che ti fornirò:
 - page: numero della pagina
 - x, y: coordinate del punto superiore sinistro dell'immagine nel PDF
 - width, height: dimensioni effettive dell'immagine
-- index: posizione progressiva nel documento
 
 Uso dei metadati:
 - Le immagini devono essere inserite nell’HTML come placeholder [IMAGE_X] nello stesso punto logico dedotto dal layout originale.
@@ -34,7 +32,7 @@ Uso dei metadati:
 
 Riconoscimento della tipologia di esercizio:
 - Identifica automaticamente la tipologia dell'esercizio basandoti su parole chiave presenti nel titolo o nell'enunciato.
-- Aggiungi alla sezione dell'esercizio un attributo className che includa la categoria riconosciuta.
+- Aggiungi alla sezione dell'esercizio un attributo class che includa la categoria riconosciuta.
   Esempio: <section id="exercise-1" class="exercise exercise-completamento">.
 - Le categorie principali da riconoscere sono:
   - "completamento" - se compaiono termini come "completa", "riempi", "inserisci", "scrivi", "determina","sostituisci".
