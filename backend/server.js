@@ -61,7 +61,7 @@ function extractImages(pdfPath, outputDir) {
     });
 }
 
-function replaceAllPlaceholders(html, images) {
+function replacePlaceholders(html, images) {
     images.forEach((img, i) => {
         const placeholder = `[IMAGE_${i + 1}]`;
         const base64 = fs.readFileSync(img.path).toString("base64");
@@ -183,7 +183,7 @@ app.post("/api/generate", uploadInline.single("file"), async (req, res) => {
         const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
         const mapping = generateMappingFromImages(images);
-        const finalHtml = replaceAllPlaceholders(htmlContent, images);
+        const finalHtml = replacePlaceholders(htmlContent, images);
 
         res.json({
             html: finalHtml,
@@ -328,7 +328,7 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
         const html = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
         const flattenedImages = structuredJson.pages.flatMap(p => p.images);
-        const finalHtml = replaceAllPlaceholders(html, flattenedImages);
+        const finalHtml = replacePlaceholders(html, flattenedImages);
 
         res.json({
             html: finalHtml,
