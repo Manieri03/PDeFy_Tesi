@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { HTML_PROMPT } from "../html_prompt.js"
+import {HTML_PROMPT2} from "../html_prompt_2.js";
 import { fileURLToPath } from "url";
 
 dotenv.config();
@@ -163,22 +164,12 @@ async function processPdfJson(pdfPath, prompt) {
         body: JSON.stringify(requestBody)
     });
 
-    const raw = await res.text();
-
-    console.log("\n=== RAW GEMINI RESPONSE ===\n", raw, "\n============================\n");
-
     if (!res.ok) {
-        throw new Error(`Errore HTTP ${res.status}: ${raw}`);
+        throw new Error(`Errore HTTP ${res.status}`);
     }
 
-    let data;
-    try {
-        data = JSON.parse(raw);
-    } catch (err) {
-        throw new Error("Errore nel parsing JSON: " + raw);
-    }
+    const data = await res.json();
 
-// 🔥 Se Gemini ha risposto con un errore interno
     if (data.error) {
         throw new Error("Errore Gemini: " + data.error.message);
     }
@@ -223,7 +214,8 @@ if (!fs.existsSync(outputDir)) {
 console.log(`--> Modalità selezionata: ${mode}`);
 console.log(`--> Cartella output: ${outputDir}`);
 
-const prompt = HTML_PROMPT;
+const prompt_inline = HTML_PROMPT;
+const prompt_json=HTML_PROMPT2;
 const MAX_CONCURRENT = 3;
 
 
@@ -234,9 +226,9 @@ async function processInBatches(files, batchSize) {
         await Promise.all(batch.map(async (pdfPath) => {
             try {
                 if (mode === "inline") {
-                    await processPdfInline(pdfPath, prompt);
+                    await processPdfInline(pdfPath, prompt_inline);
                 } else {
-                    await processPdfJson(pdfPath, prompt);
+                    await processPdfJson(pdfPath, prompt_json);
                 }
             } catch (err) {
                 console.error(`Errore su ${pdfPath}:`, err.message);
