@@ -61,129 +61,171 @@ function replacePlaceholders(html, images) {
     return html;
 }
 
+function clearDirectory(dirPath) {
+    if (!fs.existsSync(dirPath)) return;
+
+    for (const file of fs.readdirSync(dirPath)) {
+        const fullPath = path.join(dirPath, file);
+
+        try {
+            const stat = fs.lstatSync(fullPath);
+
+            if (stat.isDirectory()) {
+                for (const inner of fs.readdirSync(fullPath)) {
+                    const innerPath = path.join(fullPath, inner);
+                    fs.unlinkSync(innerPath);
+                }
+            } else {
+                fs.unlinkSync(fullPath);
+            }
+
+        } catch (err) {
+            console.warn("⚠️ Impossibile eliminare:", fullPath, err.message);
+        }
+    }
+}
+
+
 
 async function processPdfInline(pdfPath, prompt) {
 
-    // Copia PDF in cartella ufficiale
-    const pdfCopy = path.join(INLINE_PDF_DIR, path.basename(pdfPath));
-    fs.copyFileSync(pdfPath, pdfCopy);
+    try{
+        // Copia PDF in cartella ufficiale
+        const pdfCopy = path.join(INLINE_PDF_DIR, path.basename(pdfPath));
+        fs.copyFileSync(pdfPath, pdfCopy);
 
-    const base64File = fs.readFileSync(pdfCopy).toString("base64");
+        const base64File = fs.readFileSync(pdfCopy).toString("base64");
 
-    // Estrai immagini nella cartella ufficiale
-    const images = await extractImages(pdfCopy, INLINE_IMG_DIR);
+        // Estrai immagini nella cartella ufficiale
+        const images = await extractImages(pdfCopy, INLINE_IMG_DIR);
 
-    const requestBody = {
-        contents: [
-            {
-                role: "user",
-                parts: [{
-                    text: `Restituisci esclusivamente HTML puro.
+        const requestBody = {
+            contents: [
+                {
+                    role: "user",
+                    parts: [{
+                        text: `Restituisci esclusivamente HTML puro.
                             Non formattare l'output come blocco di codice.
                             Non inserire i delimitatori \`\`\`html o \`\`\`.
                             Inizia direttamente dal primo tag HTML e termina con l'ultimo.
                             Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.
                             Non includere spiegazioni, testo extra o introduzioni/conclusioni.`
-                }]
-            },
-            {
-                role: "user",
-                parts: [
-                    { text: "Metadata immagini estratte:\n" + JSON.stringify(images) },
-                    { inlineData: { data: base64File, mimeType: "application/pdf" }},
-                    { text: prompt }
-                ]
-            }
-        ]
-    };
+                    }]
+                },
+                {
+                    role: "user",
+                    parts: [
+                        { text: "Metadata immagini estratte:\n" + JSON.stringify(images) },
+                        { inlineData: { data: base64File, mimeType: "application/pdf" }},
+                        { text: prompt }
+                    ]
+                }
+            ]
+        };
 
-    const res = await fetch(`${API_URL}?key=${API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
-    });
+        const res = await fetch(`${API_URL}?key=${API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody)
+        });
 
-    const data = await res.json();
-    const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const data = await res.json();
+        const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    const final = replacePlaceholders(htmlContent, images);
-    const outputFile = path.join(outputDir, path.basename(pdfPath) + "_inline.html");
-    fs.writeFileSync(outputFile, final);
+        const final = replacePlaceholders(htmlContent, images);
+        const outputFile = path.join(outputDir, path.basename(pdfPath) + "_inline.html");
+        fs.writeFileSync(outputFile, final);
 
-    console.log(`Output inline salvato in ${outputFile}`);
+        console.log(`Output inline salvato in ${outputFile}`);
+    }catch (err)
+    {
+        console.error(`Errore inline su ${pdfPath}:`, err.message);
+    }finally {
+        clearDirectory(INLINE_PDF_DIR);
+        clearDirectory(INLINE_IMG_DIR);
+    }
+
 }
 
 
 async function processPdfJson(pdfPath, prompt) {
 
-    const pdfCopy = path.join(JSON_PDF_DIR, path.basename(pdfPath));
-    fs.copyFileSync(pdfPath, pdfCopy);
+    try{
+        const pdfCopy = path.join(JSON_PDF_DIR, path.basename(pdfPath));
+        fs.copyFileSync(pdfPath, pdfCopy);
 
-    // Estraggo struttura
-    const { stdout } = await execFileAsync("python", [
-        PY_EXTRACT_LAYOUT,
-        pdfCopy,
-        JSON_IMG_DIR
-    ]);
+        // Estraggo struttura
+        const { stdout } = await execFileAsync("python", [
+            PY_EXTRACT_LAYOUT,
+            pdfCopy,
+            JSON_IMG_DIR
+        ]);
 
-    const layoutJson = JSON.parse(stdout);
+        const layoutJson = JSON.parse(stdout);
 
-    const layoutFile = path.join(
-        JSON_LAYOUT_DIR,
-        path.basename(pdfPath, ".pdf") + "_layout.json"
-    );
+        const layoutFile = path.join(
+            JSON_LAYOUT_DIR,
+            path.basename(pdfPath, ".pdf") + "_layout.json"
+        );
 
-    fs.writeFileSync(layoutFile, JSON.stringify(layoutJson, null, 2), "utf-8");
+        fs.writeFileSync(layoutFile, JSON.stringify(layoutJson, null, 2), "utf-8");
 
-    const requestBody = {
-        contents: [
-            {
-                role: "user",
-                parts: [{
-                    text: `Restituisci esclusivamente HTML puro.
+        const requestBody = {
+            contents: [
+                {
+                    role: "user",
+                    parts: [{
+                        text: `Restituisci esclusivamente HTML puro.
                             Non formattare l'output come blocco di codice.
                             Non inserire i delimitatori \`\`\`html o \`\`\`.
                             Inizia direttamente dal primo tag HTML e termina con l'ultimo.
                             Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.
                             Non includere spiegazioni, testo extra o introduzioni/conclusioni.`
-                }]
-            },
-            {
-                role: "user",
-                parts: [
-                    { text: "Struttura estratta del PDF:\n" + JSON.stringify(layoutJson) },
-                    { text: prompt }
-                ]
-            }
-        ]
-    };
+                    }]
+                },
+                {
+                    role: "user",
+                    parts: [
+                        { text: "Struttura estratta del PDF:\n" + JSON.stringify(layoutJson) },
+                        { text: prompt }
+                    ]
+                }
+            ]
+        };
 
-    const res = await fetch(`${API_URL}?key=${API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
-    });
+        const res = await fetch(`${API_URL}?key=${API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody)
+        });
 
-    if (!res.ok) {
-        throw new Error(`Errore HTTP ${res.status}`);
+        if (!res.ok) {
+            throw new Error(`Errore HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        if (data.error) {
+            throw new Error("Errore Gemini: " + data.error.message);
+        }
+
+        const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+
+        const images = layoutJson.pages.flatMap(p => p.images);
+        const final = replacePlaceholders(htmlContent, images);
+
+        const outputFile = path.join(outputDir, path.basename(pdfPath) + "_json.html");
+        fs.writeFileSync(outputFile, final);
+
+        console.log(`Output JSON salvato in ${outputFile}`);
+    }catch(err){
+        console.error(`Errore JSON su ${pdfPath}:`, err.message);
+    }finally {
+        clearDirectory(JSON_PDF_DIR);
+        clearDirectory(JSON_IMG_DIR);
+        clearDirectory(JSON_LAYOUT_DIR);
     }
-
-    const data = await res.json();
-
-    if (data.error) {
-        throw new Error("Errore Gemini: " + data.error.message);
-    }
-
-    const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-
-    const images = layoutJson.pages.flatMap(p => p.images);
-    const final = replacePlaceholders(htmlContent, images);
-
-    const outputFile = path.join(outputDir, path.basename(pdfPath) + "_json.html");
-    fs.writeFileSync(outputFile, final);
-
-    console.log(`Output JSON salvato in ${outputFile}`);
 }
 
 
