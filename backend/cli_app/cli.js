@@ -21,7 +21,23 @@ const PY_EXTRACT_LAYOUT = path.resolve(__dirname, "../extract_layout_JSON.py");
 
 const API_KEY = process.env.GEMINI_API_KEY;
 if (!API_KEY) throw new Error("GEMINI_API_KEY non trovata nel file .env");
+
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
+
+
+const UPLOADS_DIR = path.resolve(__dirname, "../uploads");
+
+// INLINE
+const INLINE_DIR = path.join(UPLOADS_DIR, "tmp_layout_inline");
+const INLINE_PDF_DIR = path.join(INLINE_DIR, "pdf");
+const INLINE_IMG_DIR = path.join(INLINE_DIR, "images");
+
+// JSON
+const JSON_DIR = path.join(UPLOADS_DIR, "tmp_layout_JSON");
+const JSON_PDF_DIR = path.join(JSON_DIR, "pdf");
+const JSON_IMG_DIR = path.join(JSON_DIR, "images");
+const JSON_LAYOUT_DIR = path.join(JSON_DIR, "layouts");
+
 
 async function extractImages(pdfPath, outputDir) {
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -34,22 +50,27 @@ async function extractImages(pdfPath, outputDir) {
 }
 
 function replacePlaceholders(html, images) {
-    let output = html;
-    images.forEach((img, index) => {
-        const placeholder = `[IMAGE_${index + 1}]`;
-        if (output.includes(placeholder)) {
-            const imgTag = `<img class="img_pdf" src="data:image/${img.ext};base64,${fs.readFileSync(img.path).toString("base64")}" alt="image_${index + 1}" />`;
-            output = output.replaceAll(placeholder, imgTag);
-        }
+    images.forEach((img, i) => {
+        const placeholder = `[IMAGE_${i + 1}]`;
+        const base64 = fs.readFileSync(img.path).toString("base64");
+        const imgTag =
+            `<img src="data:image/${img.ext};base64,${base64}" style="width:${img.width}px;height:${img.height}px;" />`;
+        html = html.replaceAll(placeholder, imgTag);
     });
-    return output;
+    return html;
 }
 
-async function processPdfInline(pdfPath, prompt) {
-    const fileBuffer = fs.readFileSync(pdfPath);
-    const base64File = fileBuffer.toString("base64");
 
-    const images = await extractImages(pdfPath, "uploads/tmp_images");
+async function processPdfInline(pdfPath, prompt) {
+
+    // Copia PDF in cartella ufficiale
+    const pdfCopy = path.join(INLINE_PDF_DIR, path.basename(pdfPath));
+    fs.copyFileSync(pdfPath, pdfCopy);
+
+    const base64File = fs.readFileSync(pdfCopy).toString("base64");
+
+    // Estrai immagini nella cartella ufficiale
+    const images = await extractImages(pdfCopy, INLINE_IMG_DIR);
 
     const requestBody = {
         contents: [
@@ -58,8 +79,10 @@ async function processPdfInline(pdfPath, prompt) {
                 parts: [{
                     text: `Restituisci esclusivamente HTML puro.
                             Non formattare l'output come blocco di codice.
-                            Inizia con <html> e termina con </html>.
-                            Non aggiungere testo o spiegazioni.`
+                            Non inserire i delimitatori \`\`\`html o \`\`\`.
+                            Inizia direttamente dal primo tag HTML e termina con l'ultimo.
+                            Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.
+                            Non includere spiegazioni, testo extra o introduzioni/conclusioni.`
                 }]
             },
             {
@@ -83,21 +106,33 @@ async function processPdfInline(pdfPath, prompt) {
     const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     const final = replacePlaceholders(htmlContent, images);
-    const outputFile = path.join(outputDir, path.basename(pdfPath, ".pdf") + "_inline.html");
+    const outputFile = path.join(outputDir, path.basename(pdfPath) + "_inline.html");
     fs.writeFileSync(outputFile, final);
 
-    console.log(`Output con modalità inline salvato in ${outputFile}`);
+    console.log(`Output inline salvato in ${outputFile}`);
 }
 
+
 async function processPdfJson(pdfPath, prompt) {
-    // Estrai struttura PDF
+
+    const pdfCopy = path.join(JSON_PDF_DIR, path.basename(pdfPath));
+    fs.copyFileSync(pdfPath, pdfCopy);
+
+    // Estraggo struttura
     const { stdout } = await execFileAsync("python", [
         PY_EXTRACT_LAYOUT,
-        pdfPath,
-        "uploads/tmp_json_images"
+        pdfCopy,
+        JSON_IMG_DIR
     ]);
 
     const layoutJson = JSON.parse(stdout);
+
+    const layoutFile = path.join(
+        JSON_LAYOUT_DIR,
+        path.basename(pdfPath, ".pdf") + "_layout.json"
+    );
+
+    fs.writeFileSync(layoutFile, JSON.stringify(layoutJson, null, 2), "utf-8");
 
     const requestBody = {
         contents: [
@@ -106,8 +141,10 @@ async function processPdfJson(pdfPath, prompt) {
                 parts: [{
                     text: `Restituisci esclusivamente HTML puro.
                             Non formattare l'output come blocco di codice.
-                            Inizia con <html> e termina con </html>.
-                            Non aggiungere testo o spiegazioni.`
+                            Non inserire i delimitatori \`\`\`html o \`\`\`.
+                            Inizia direttamente dal primo tag HTML e termina con l'ultimo.
+                            Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.
+                            Non includere spiegazioni, testo extra o introduzioni/conclusioni.`
                 }]
             },
             {
@@ -126,25 +163,43 @@ async function processPdfJson(pdfPath, prompt) {
         body: JSON.stringify(requestBody)
     });
 
-    const data = await res.json();
+    const raw = await res.text();
+
+    console.log("\n=== RAW GEMINI RESPONSE ===\n", raw, "\n============================\n");
+
+    if (!res.ok) {
+        throw new Error(`Errore HTTP ${res.status}: ${raw}`);
+    }
+
+    let data;
+    try {
+        data = JSON.parse(raw);
+    } catch (err) {
+        throw new Error("Errore nel parsing JSON: " + raw);
+    }
+
+// 🔥 Se Gemini ha risposto con un errore interno
+    if (data.error) {
+        throw new Error("Errore Gemini: " + data.error.message);
+    }
+
     const htmlContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
 
     const images = layoutJson.pages.flatMap(p => p.images);
     const final = replacePlaceholders(htmlContent, images);
 
-    const outputFile = path.join(outputDir, path.basename(pdfPath, ".pdf") + "_json.html");
+    const outputFile = path.join(outputDir, path.basename(pdfPath) + "_json.html");
     fs.writeFileSync(outputFile, final);
 
-    console.log(`✔ JSON salvato in ${outputFile}`);
+    console.log(`Output JSON salvato in ${outputFile}`);
 }
-
 
 
 let outputDir = ".";
 let mode = "inline";
 
 const args = process.argv.slice(2);
-
 const pdfFiles = [];
 
 for (let i = 0; i < args.length; i++) {
@@ -161,16 +216,16 @@ for (let i = 0; i < args.length; i++) {
     }
 }
 
-
 if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
 }
 
 console.log(`--> Modalità selezionata: ${mode}`);
-console.log(`--> Cartella output selezionata: ${outputDir}`);
+console.log(`--> Cartella output: ${outputDir}`);
 
 const prompt = HTML_PROMPT;
 const MAX_CONCURRENT = 3;
+
 
 async function processInBatches(files, batchSize) {
     for (let i = 0; i < files.length; i += batchSize) {

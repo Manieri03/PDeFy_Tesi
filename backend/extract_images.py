@@ -2,6 +2,7 @@ import sys, json, os
 import fitz  # PyMuPDF
 from PIL import Image
 import io
+sys.stdout.reconfigure(encoding='utf-8')
 
 pdf_path = sys.argv[1]
 output_dir = sys.argv[2]
