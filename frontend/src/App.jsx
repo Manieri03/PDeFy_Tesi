@@ -140,7 +140,7 @@ function App() {
                 </div>
                 <main>
                     <div className="settings_div">
-                        <button className="btn_submit btn_preset" onClick={handleHtmlPreset}>Prompt HTML<FileCode size={20}></FileCode></button>
+                        <h2 className="mod_title">Modalità:</h2>
                         <div className="mode-switch">
                             <label>
                                 <input
@@ -163,6 +163,8 @@ function App() {
                             </label>
 
                         </div>
+
+                        <button className="btn_submit btn_preset" onClick={handleHtmlPreset}>Usa prompt predefinito HTML<FileCode size={20}></FileCode></button>
                     </div>
 
                     <form className="form_input" onSubmit={(e) => processQueue(e)}>
@@ -187,17 +189,20 @@ function App() {
                                 onChange={(e) => setFiles(Array.from(e.target.files))}
                             />
                         </label>
+                        <div className="processing_div">
+
                         <button className="btn_submit" type="submit" disabled={loading}>
                             {loading ? <Loader className="spin" size={28}></Loader> : <Send size={28}></Send>}
                         </button>
-                    </form>
 
-
-                    {loading && currentFile && (
-                        <div className="loading_div">
-                            <p>Elaborazione di: <b>{currentFile}</b></p>
+                        {loading && currentFile && (
+                            <div className="loading_div">
+                                <p>Elaborazione di: <b>{currentFile}</b></p>
+                            </div>
+                        )}
                         </div>
-                    )}
+
+                    </form>
 
                     {error && (
                         <div className="error_div">
