@@ -5,20 +5,40 @@ import "./WysiwygEditor.css";
 export default function WysiwygEditor({ initialHtml, onChange, style }) {
     const editorRef = useRef(null);
     const apiKey = import.meta.env.VITE_TINYMCE_API_KEY;
+    const [isEditorReady, setIsEditorReady] = useState(false);
 
     useEffect(() => {
-        if (editorRef.current && initialHtml) {
+        if (editorRef.current && style && isEditorReady) {
+            const editor = editorRef.current;
+            const doc = editor.getDoc();
+
+            const existingStyle = doc.getElementById('custom-content-style');
+            if (existingStyle) {
+                existingStyle.remove();
+            }
+
+            const styleTag = doc.createElement('style');
+            styleTag.id = 'custom-content-style';
+            styleTag.textContent = style;
+            doc.head.appendChild(styleTag);
+        }
+    }, [style, isEditorReady]);
+
+    useEffect(() => {
+        if (editorRef.current && initialHtml && isEditorReady) {
             const editor = editorRef.current;
             const currentContent = editor.getContent();
             if (currentContent !== initialHtml) {
                 editor.setContent(initialHtml);
-                setTimeout(() => {
-                    addDeleteButtons(editor);
-                    enableDragDropImageBlocks(editor);
-                }, 300);
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        addDeleteButtons(editor);
+                        enableDragDropImageBlocks(editor);
+                    });
+                });
             }
         }
-    }, [initialHtml]);
+    }, [initialHtml, isEditorReady]);
 
     function addDeleteButtons(editor) {
         const doc = editor.getDoc();
@@ -31,24 +51,26 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             btn.className = "delete-btn";
             btn.textContent = "x";
             btn.style.cssText = `
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        cursor: pointer;
-        z-index: 1000;
-        width: 18px;
-        height: 18px;
-        border-radius: 30%;
-        font-weight: bold;
-        background-color: red;
-        color: white;
-        border: none;
-      `;
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                cursor: pointer;
+                z-index: 1000;
+                width: 18px;
+                height: 18px;
+                border-radius: 30%;
+                font-weight: bold;
+                background-color: red;
+                color: white;
+                border: none;
+            `;
             btn.addEventListener("mouseenter", () => (btn.style.backgroundColor = "darkred"));
             btn.addEventListener("mouseleave", () => (btn.style.backgroundColor = "red"));
             btn.addEventListener("click", (e) => {
                 e.preventDefault();
                 section.remove();
+                editor.save();
+                onChange?.(editor.getContent());
             });
             section.style.position = "relative";
             section.appendChild(btn);
@@ -59,7 +81,6 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
         const doc = editor.getDoc();
         let draggedBlock = null;
 
-        // --- Drag start ---
         doc.addEventListener("dragstart", (e) => {
             const block = e.target.closest(
                 ".image-placeholder, .image-with-text, .image-with-placeholder-inline, .image-placeholder-container"
@@ -71,7 +92,6 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             e.dataTransfer.setData("text/plain", "dragging");
             block.style.opacity = "0.5";
 
-            // Rimuove eventuale selezione di testo
             editor.getWin().getSelection()?.removeAllRanges();
             e.stopPropagation();
             e.stopImmediatePropagation();
@@ -82,7 +102,6 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             draggedBlock = null;
         });
 
-        // Evita interferenze con input/textarea
         const inputs = doc.querySelectorAll("input, textarea");
         inputs.forEach((input) => {
             input.addEventListener("mousedown", (e) => e.stopPropagation());
@@ -92,7 +111,6 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
         doc.addEventListener("dragover", (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = "move";
-            if (!target || target === draggedBlock || target.contains(draggedBlock)) return;
         });
 
         doc.addEventListener("drop", (e) => {
@@ -103,16 +121,13 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
                 ".image-placeholder, .image-with-text, .image-with-placeholder-inline, .image-placeholder-container"
             );
 
-            // Se stai rilasciando sopra un altro blocco immagine
             if (dropTarget && dropTarget !== draggedBlock) {
                 const rect = dropTarget.getBoundingClientRect();
                 const isAboveHalf = e.clientY < rect.top + rect.height / 2;
 
                 if (isAboveHalf) {
-                    // Inserisci PRIMA
                     dropTarget.parentNode.insertBefore(draggedBlock, dropTarget);
                 } else {
-                    // Inserisci DOPO
                     dropTarget.parentNode.insertBefore(draggedBlock, dropTarget.nextSibling);
                 }
             } else {
@@ -137,9 +152,7 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             editor.save();
             onChange?.(editor.getContent());
         });
-
     }
-
 
     return (
         <Editor
@@ -147,28 +160,31 @@ export default function WysiwygEditor({ initialHtml, onChange, style }) {
             className="editor_wysiwyg"
             onInit={(_evt, editor) => {
                 editorRef.current = editor;
-                setTimeout(() => {
-                    addDeleteButtons(editor);
-                    enableDragDropImageBlocks(editor);
-                }, 300);
+                setIsEditorReady(true);
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        addDeleteButtons(editor);
+                        enableDragDropImageBlocks(editor);
+                    });
+                });
             }}
             initialValue={initialHtml || ""}
             init={{
                 height: 600,
                 menubar: false,
                 statusbar: false,
-                toolbar:
-                    "undo redo | bold italic underline | bullist numlist | code",
+                toolbar: "undo redo | bold italic underline | bullist numlist | code",
                 plugins: ["lists", "link", "autolink", "code", "table", "visualblocks", "wordcount"],
                 language: "it",
                 language_url: "https://cdn.tiny.cloud/1/no-api-key/tinymce/6/langs/it.js",
                 content_style: style,
                 setup: (editor) => {
                     editor.on("NodeChange", () => {
-                        setTimeout(() => addDeleteButtons(editor), 100);
+                        requestAnimationFrame(() => addDeleteButtons(editor));
                     });
                     editor.on("SetContent", () => {
-                        setTimeout(() => addDeleteButtons(editor), 100);
+                        requestAnimationFrame(() => addDeleteButtons(editor));
                     });
                 },
             }}
