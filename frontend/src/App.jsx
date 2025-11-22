@@ -226,7 +226,7 @@ function App() {
                             id="btn_download"
                             onClick={downloadHTML}
                         >
-                            <Download size={30} />
+                            Download <Download size={30} />
                         </button>
                     </div>
                 )}
