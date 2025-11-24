@@ -13,7 +13,7 @@ const LLM_MODEL_PRO = "gemini-2.5-pro:generateContent";
 const LLM_MODEL_FLASH = "gemini-2.5-flash:generateContent";
 const LLM_MODEL_3PRO = "gemini-3-pro-preview:generateContent";
 
-const LLM_SELECTED_MODEL = LLM_MODEL_3PRO;
+const LLM_SELECTED_MODEL = LLM_MODEL_PRO;
 const LLM_MODEL_URL = `${LLM_API_BASE}/${LLM_SELECTED_MODEL}`;
 
 function catchError(status, rawError) {
@@ -200,8 +200,10 @@ app.post("/api/generate", uploadInline.single("file"), async (req, res) => {
     } finally {
         setTimeout(() => {
             try {
+
                 clearDirectory("uploads/tmp_layout_inline/images");
                 clearDirectory("uploads/tmp_layout_inline/pdf");
+
             } catch (cleanupErr) {
                 console.error("Errore nella pulizia:", cleanupErr);
             }
@@ -254,9 +256,11 @@ function extractStructured(pdfPath, imagesDir, layoutsDir) {
 
 
 app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
+    const log = makeTimer("Gemini PDF");
     let filePath = null;
 
     try {
+        log("Inizio richiesta");
         const { prompt } = req.body;
         if (!prompt) {
             return res.status(400).json({ error: "Prompt mancante" });
@@ -289,7 +293,7 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
                             Non inserire i delimitatori \`\`\`html o \`\`\`.
                             Inizia direttamente dal primo tag HTML e termina con l'ultimo.
                             Se stai per inserire un blocco \`\`\`html, rimuovilo e restituisci solo il contenuto.
-                            Non includere spiegazioni, testo extra o introduzioni/conclusioni.\``
+                            Non includere spiegazioni, testo extra o introduzioni/conclusioni.`
                     }]
                 },
                 {
@@ -308,6 +312,8 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
             ]
         };
 
+        log("Body costruito, invio a Gemini...");
+
         const response = await fetch(`${LLM_MODEL_URL}?key=${API_KEY}`,
             {
                 method: "POST",
@@ -325,6 +331,7 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
         }
 
         const data = await response.json();
+        log("Risposta ricevuta");
         const html = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
         const flattenedImages = structuredJson.pages.flatMap(p => p.images);
@@ -354,6 +361,7 @@ app.post("/api/generate_JSON", uploadJson.single("file"), async (req, res) => {
                 clearDirectory("uploads/tmp_layout_JSON/pdf");
             } catch (_) {}
         }, 2000);
+
     }
 });
 
