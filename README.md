@@ -1,5 +1,5 @@
-PDeFy - Sistema di estrazione semantica e conversione di PDF basato su LLM
-Applicazione web e CLI per convertire PDF nativi contenenti esercizi scolastici in HTML strutturato tramite Google Gemini.
+# PDeFy - Sistema di estrazione semantica e conversione di PDF basato su LLM
+## Applicazione web e CLI per convertire PDF nativi contenenti esercizi scolastici in HTML strutturato tramite Google Gemini.
 
 🚀 Overview
 
