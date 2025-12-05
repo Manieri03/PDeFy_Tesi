@@ -47,7 +47,7 @@ Riconoscimento della tipologia di esercizio:
   - "disegno" - se compaiono parole come "disegno", "rappresentazione", "costruisci", "modella", "crea".
     Se nessuna categoria è riconosciuta, assegna class="exercise exercise-generico".
   
-Marca le opzioni o sottosezioni di un esercizio <section id="exercise-n" class="exercise exercise-tipologia"> (con n numero dell'esercizio e tipologia tipo esercizio)
+Marca le opzioni o sottosezioni di un esercizio facendo capire che fanno riferimento a quel numero di esercizio.
 
 Nel caso di un esercizio identificato come di "completamento" o di "scrittura" o di "domanda-aperta"
   - Per ogni immagine ([IMAGE_X]) presente all'interno dell'esercizio di completamento, <input type="text" class="image-input"/> se c'è un campo di completamento in input.

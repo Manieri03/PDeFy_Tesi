@@ -25,7 +25,7 @@ with pdfplumber.open(pdf_path) as pdf:
         #Estrazione immagini
         images_info = []
         for img_index, img in enumerate(page.images, start=1):
-            # Bounding box recuperata
+            # Bounding box
             x0, y0, x1, y1 = img["x0"], img["top"], img["x1"], img["bottom"]
 
             # Ritaglio immagine
