@@ -4,7 +4,7 @@ Applicazione web e CLI per convertire PDF nativi contenenti esercizi scolastici 
 🚀 Overview
 
 PDeFy è un prototipo sperimentale progettato per estrarre, ricostruire e convertire automaticamente materiali scolastici in formato PDF in HTML semantico, utilizzando un approccio ibrido che combina:
-estrazione tradizionale (PyMuPDF, PDFPlumber), generazione strutturata tramite Large Language Models (Google Gemini 2.5 / 3 Pro),post-processing e correzione tramite editor WYSIWYG (TinyMCE).
+estrazione tradizionale (PyMuPDF, PDFPlumber), generazione strutturata tramite Large Language Models (Google Gemini 2.5 / 3 Pro), post-processing e correzione tramite editor WYSIWYG (TinyMCE).
 L’obiettivo è ottenere output modificabili, accessibili e facilmente adattabili al contesto didattico.
 
 📌 Caratteristiche principali
