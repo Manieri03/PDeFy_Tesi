@@ -1,27 +1,39 @@
-# PDeFy - Sistema di estrazione semantica e conversione di PDF basato su LLM
-## Applicazione web e CLI per convertire PDF nativi contenenti esercizi scolastici in HTML strutturato tramite Google Gemini.
+# PDeFy
 
-🚀 Overview
+PDeFy è un'applicazione web e CLI per la conversione di PDF scolastici in HTML semantico.  
+Il sistema combina tecniche di parsing tradizionale con modelli LLM, in particolare Google Gemini, per riconoscere la struttura dei documenti, classificare automaticamente gli esercizi e produrre output HTML modificabili e pronti per il web.
 
-PDeFy è un prototipo sperimentale progettato per estrarre, ricostruire e convertire automaticamente materiali scolastici in formato PDF in HTML semantico, utilizzando un approccio ibrido che combina:
-estrazione tradizionale (PyMuPDF, PDFPlumber), generazione strutturata tramite Large Language Models (Google Gemini 2.5 / 3 Pro), post-processing e correzione tramite editor WYSIWYG (TinyMCE).
-L’obiettivo è ottenere output modificabili, accessibili e facilmente adattabili al contesto didattico.
+Il progetto è pensato come prototipo sperimentale per trasformare materiali didattici in formato PDF in contenuti digitali più accessibili, strutturati e riutilizzabili.
 
-📌 Caratteristiche principali
-Due pipeline di conversione
+## Funzionalità principali
 
-INLINE: invio del PDF in forma visiva al modello (migliore fedeltà).
+- Conversione di PDF scolastici in HTML semantico
+- Riconoscimento automatico della struttura del documento
+- Classificazione delle tipologie di esercizio
+- Supporto a esercizi di completamento, scelta multipla, vero/falso, collegamento e calcolo
+- Estrazione di testo, immagini e layout dal PDF
+- Integrazione con Google Gemini per la ricostruzione semantica del contenuto
+- Editor WYSIWYG per modificare l'HTML generato
+- Supporto CLI per conversioni batch
+- Applicazione frontend per l'utilizzo tramite interfaccia web
 
-JSON: invio del layout strutturato tramite estrazione completa (testo, parole, bounding box).
+## Architettura del progetto
 
-Estrazione immagini accurata: bounding box, dimensioni, coordinate
-sostituzione automatica dei placeholder con immagini Base64
+Il progetto è organizzato in due componenti principali:
 
-Classificazione automatica degli esercizi
-L’LLM riconosce tipologie come:
-completamento, scelta-multipla, collegamento, vero-falso, calcolo, ecc.
-
-Supporto CLI per conversioni batch automatizzate
-
-cd backend/cli_app
-pdefy --mode inline --out ./output esercizio.pdf
+```text
+PDeFy/
+│
+├── backend/
+│   ├── cli_app/          # Applicazione CLI
+│   ├── server.js         # Avvio del server backend
+│   ├── package.json      # Dipendenze backend
+│   └── ...
+│
+├── frontend/
+│   ├── src/              # Codice sorgente React
+│   ├── package.json      # Dipendenze frontend
+│   └── ...
+│
+├── package.json
+└── README.md
